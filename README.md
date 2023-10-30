@@ -1,2 +1,11 @@
 # growatt-spf5000es-linux-control
-Growatt SPF5000ES inverter controller and remote monitor for Linux
+Growatt SPF5000ES inverter controller server + client monitor for Linux. Addresses some quirks and shortcomings with the inverter to make it work harmoniously with UK energy provider Octupus' "Intelligent" EV tariff, to take full advantage of the cheap off-peak 23:30-04:30 rate to power the house off batteries too!
+
+**Does not do anything with solar and assumes no solar panels are connected** - you'd need some bloody cheap solar panels to compete with £0.075/kWh!
+
+Specific use case is Raspberry Pis, but will work with any Linux flavor.
+
+Connects via USB MODBUS to a Growatt SPF5000ES hybrid solar+battery "off-grid" (non-grid-tied) inverter, to do the following:
+- Switch to full grid mode and charge the batteries between 23:30 and 04:30. While the SPF5000ES features a charging time window, it won't actually start charging unless the battery voltage has dropped below setting 12 "B2AC" voltage. This behaviour is overridden by simply changing setting 1 "OPPR" to "UTI" to force switch to grid, where it will charge within setting 49 "CHG" time (note: consider todging this setting across MODBUS too if needed for all 6 hours off-peak as it only has 1-hour granularity). Changing setting 1 "OPPR" back to "SBU" automatically switches back to batteries+solar first and disconnects from the grid.
+- More timely switching back to grid when the 5kW capacity of the inverter is exceeded. Normally SPF5000ES has staged overload tolerance times before automatically switching back to grid, but I've found that these don't always work and the inverter can have a powercut and throw error codes "08 - Bus Voltage Too High" or "52 - Bus Voltage Too Low", especially when an electric motor (hoover/jetwash/coffee machine pump) takes it over the limit. This needs annoying full inverter power cycles (battery + mains disconnect) to recover from and restore power to the house. This is achieved by simply forcing setting 1 "OPPR" to "UTI" as soon as current power output exceeds 4.8kW and returning it to "SBU" 30mins later.
+- TCP Server and client application to accept incoming client connections that can query the current inverter parameters, and send commands such as manually switching back to the grid (for activities that could regularly exceed 5kW and require high power supply reliability, like cooking a Sunday lunch).
