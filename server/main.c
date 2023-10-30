@@ -13,7 +13,8 @@
 #include <modbus.h>
 #include <errno.h>
 
-#define INPUT_REG_COUNT 83
+#define INPUT_REG_COUNT     83
+#define HOLDING_REG_COUNT   51
 
 long long current_time_millis()
 {
@@ -30,7 +31,8 @@ int main()
 {  
     modbus_t *ctx;
     int rc;
-    uint16_t tab_reg[INPUT_REG_COUNT]; // To store the read data
+    uint16_t tab_ireg[INPUT_REG_COUNT]; // To store the read data
+    uint16_t tab_hreg[INPUT_REG_COUNT]; // To store the read data
 
     // Create a new Modbus context
     ctx = modbus_new_rtu("/dev/ttyXRUSB0", 9600, 'N', 8, 1);
@@ -54,8 +56,7 @@ int main()
     
     while(oTimer < oTimeEnd)
     {
-        // Read 100 lines of input registers starting from address 0
-        rc = modbus_read_input_registers(ctx, 0, INPUT_REG_COUNT, tab_reg);
+        /*rc = modbus_read_input_registers(ctx, 0, INPUT_REG_COUNT, tab_ireg);
         if (rc == -1) {
             fprintf(stderr, "Read registers failed: %s\n", modbus_strerror(errno));
             modbus_free(ctx);
@@ -64,7 +65,19 @@ int main()
 
         // Print the response
         for (int i = 0; i < INPUT_REG_COUNT; i++) {
-            printf("Register %d: %d\n", i, tab_reg[i]);
+            printf("Register %d: %d\n", i, tab_ireg[i]);
+        }*/
+        
+        rc = modbus_read_registers(ctx, 0, HOLDING_REG_COUNT, tab_hreg);
+        if (rc == -1) {
+            fprintf(stderr, "Read registers failed: %s\n", modbus_strerror(errno));
+            modbus_free(ctx);
+            return -1;
+        }
+
+        // Print the response
+        for (int i = 0; i < HOLDING_REG_COUNT; i++) {
+            printf("Register %d: %d\n", i, tab_hreg[i]);
         }
         
         lCounts++;
