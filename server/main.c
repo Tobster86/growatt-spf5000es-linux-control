@@ -61,7 +61,9 @@ int main()
     
     while(oTimer < oTimeEnd)
     {
-        rc = modbus_read_input_registers(ctx, STATUS, 1, &status.nInverterState);
+        rc = modbus_read_input_registers(ctx, 0, INPUT_REGISTER_COUNT, &status.nInverterState);
+    
+        /*rc = modbus_read_input_registers(ctx, STATUS, 1, &status.nInverterState);
         rc = modbus_read_input_registers(ctx, OUTPUT_WATTS_L, 1, &status.nOutputWatts);
         rc = modbus_read_input_registers(ctx, OUTPUT_APPPWR_L, 3, &status.nOutputApppwr);
         rc = modbus_read_input_registers(ctx, BATTERY_VOLTS, 1, &status.nBatteryVolts);
@@ -74,7 +76,7 @@ int main()
         rc = modbus_read_input_registers(ctx, AC_USE_WATTS_L, 1, &status.nAcUseWatts);
         rc = modbus_read_input_registers(ctx, BATTUSE_WATTS_L, 1, &status.nBattuseWatts);
         rc = modbus_read_input_registers(ctx, BATT_WATTS_L, 1, &status.nBattWatts);
-        rc = modbus_read_input_registers(ctx, MPPT_FANSPEED, 2, &status.nMpptFanspeed);
+        rc = modbus_read_input_registers(ctx, MPPT_FANSPEED, 2, &status.nMpptFanspeed);*/
     
         /*rc = modbus_read_input_registers(ctx, OUTPUT_WATTS_L, 1, &status.nOutputWatts);
         rc = modbus_read_input_registers(ctx, OUTPUT_APPPWR_L, 1, &status.nOutputApppwr);
