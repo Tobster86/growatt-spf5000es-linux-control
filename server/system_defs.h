@@ -23,7 +23,7 @@ struct Status
     uint16_t nModbusFPS;
     
     //Inverter status.
-    uint16_t cInverterState;
+    uint16_t nInverterState;
     uint16_t nOutputWatts;
     uint16_t nOutputApppwr; //Slightly higher than output watts at idle. Load + inverter?
     uint16_t nAcChargeWattsH; //Appears when charging?

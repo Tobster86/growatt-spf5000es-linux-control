@@ -61,7 +61,22 @@ int main()
     
     while(oTimer < oTimeEnd)
     {
+        rc = modbus_read_input_registers(ctx, STATUS, 1, &status.nInverterState);
         rc = modbus_read_input_registers(ctx, OUTPUT_WATTS_L, 1, &status.nOutputWatts);
+        rc = modbus_read_input_registers(ctx, OUTPUT_APPPWR_L, 3, &status.nOutputApppwr);
+        rc = modbus_read_input_registers(ctx, BATTERY_VOLTS, 1, &status.nBatteryVolts);
+        rc = modbus_read_input_registers(ctx, BUS_VOLTS, 11, &status.nBusVolts);
+        rc = modbus_read_input_registers(ctx, BUCK1_TEMP, 6, &status.nBuck1Temp);
+        rc = modbus_read_input_registers(ctx, ACCHGEGY_TODAY_L, 1, &status.nAcchgegyToday);
+        rc = modbus_read_input_registers(ctx, BATTUSE_TODAY_L, 1, &status.nBattuseToday);
+        rc = modbus_read_input_registers(ctx, AC_USE_TODAY_L, 1, &status.nAcUseToday);
+        rc = modbus_read_input_registers(ctx, AC_BATTCHG_AMPS, 1, &status.nAcBattchgAmps);
+        rc = modbus_read_input_registers(ctx, AC_USE_WATTS_L, 1, &status.nAcUseWatts);
+        rc = modbus_read_input_registers(ctx, BATTUSE_WATTS_L, 1, &status.nBattuseWatts);
+        rc = modbus_read_input_registers(ctx, BATT_WATTS_L, 1, &status.nBattWatts);
+        rc = modbus_read_input_registers(ctx, MPPT_FANSPEED, 2, &status.nMpptFanspeed);
+    
+        /*rc = modbus_read_input_registers(ctx, OUTPUT_WATTS_L, 1, &status.nOutputWatts);
         rc = modbus_read_input_registers(ctx, OUTPUT_APPPWR_L, 1, &status.nOutputApppwr);
         rc = modbus_read_input_registers(ctx, AC_CHARGE_WATTS_H, 1, &status.nAcChargeWattsH);
         rc = modbus_read_input_registers(ctx, AC_CHARGE_WATTS_L, 1, &status.nAcChargeWattsL);
@@ -91,7 +106,7 @@ int main()
         rc = modbus_read_input_registers(ctx, BATTUSE_WATTS_L, 1, &status.nBattuseWatts);
         rc = modbus_read_input_registers(ctx, BATT_WATTS_L, 1, &status.nBattWatts);
         rc = modbus_read_input_registers(ctx, MPPT_FANSPEED, 1, &status.nMpptFanspeed);
-        rc = modbus_read_input_registers(ctx, INV_FANSPEED, 1, &status.nInvFanspeed);
+        rc = modbus_read_input_registers(ctx, INV_FANSPEED, 1, &status.nInvFanspeed);*/
         
         printf("-------========= Regs =========-------\n");
         printf("nOutputWatts - %d\n", status.nOutputWatts);
