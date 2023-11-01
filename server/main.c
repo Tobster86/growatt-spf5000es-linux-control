@@ -16,207 +16,307 @@
 #include "spf5000es_defs.h"
 #include "system_defs.h"
 
-#define INPUT_REG_COUNT     83
-#define HOLDING_REG_COUNT   51
+#define SWITCH_TO_GRID_LOAD_PERCENT 950 //The raw value is actually permille.
 
-long long current_time_millis()
+bool bRunning = true;
+
+enum ModbusState
 {
-    struct timespec spec;
-    clock_gettime(CLOCK_MONOTONIC, &spec);
-    return spec.tv_sec * 1000 + spec.tv_nsec / 1000000;
+    INIT,
+    PROCESS,
+    DEINIT,
+    DIE
+};
+
+enum ModbusState modbusState = INIT;
+modbus_t *ctx;
+
+struct SystemStatus status;
+uint16_t nInverterMode;
+bool bManualSwitchToGrid = false;
+bool bManualSwitchToBatts = false;
+
+void* network_thread(void* arg)
+{
 }
 
-long long oTimer;
-long long oTimeEnd;
-uint32_t lCounts = 0;
+static void reinit()
+{
+    printf("MODBUS comms reinit.\n");
 
-struct Status status;
+    if(ctx != NULL)
+    {
+        modbus_close(ctx);
+        modbus_free(ctx);
+    }
+
+    modbusState = INIT;
+    sleep(1);
+}
+
+void* modbus_thread(void* arg)
+{
+    uint16_t inputRegs[INPUT_REGISTER_COUNT];
+
+    while(modbusState != DIE)
+    {
+        switch(modbusState)
+        {
+            case INIT:
+            {
+                modbusState = PROCESS;
+
+                //Create a MODBUS context on /dev/ttyXRUSB0
+                ctx = modbus_new_rtu("/dev/ttyXRUSB0", 9600, 'N', 8, 1);
+                if (ctx == NULL)
+                {
+                    reinit();
+                }
+
+                //Connect to the MODBUS slave (slave ID 1)
+                modbus_set_slave(ctx, 1);
+                if (modbus_connect(ctx) == -1)
+                {
+                    reinit();
+                }
+            }
+            break;
+
+            case PROCESS:
+            {
+                //Read input registers and holding register (inverter mode).
+                if(-1 == modbus_read_input_registers(ctx, 0, INPUT_REGISTER_COUNT, inputRegs) ||
+                   -1 == modbus_read_registers(ctx, GW_HREG_CFG_MODE, 1, &nInverterMode))
+                {
+                    reinit();
+                }
+                else
+                {
+                    int write_rc = 0;
+                
+                    //Get the time.
+                    time_t rawtime;
+                    struct tm* timeinfo;
+                    time(&rawtime);
+                    timeinfo = localtime(&rawtime);
+                
+                    //Store relevant input register values.
+                    status.nOutputWatts = inputRegs[OUTPUT_WATTS_L];
+                    status.nOutputApppwr = inputRegs[OUTPUT_APPPWR_L];
+                    status.nAcChargeWattsH = inputRegs[AC_CHARGE_WATTS_H];
+                    status.nAcChargeWattsL = inputRegs[AC_CHARGE_WATTS_L];
+                    status.nBatteryVolts = inputRegs[BATTERY_VOLTS];
+                    status.nBusVolts = inputRegs[BUS_VOLTS];
+                    status.nGridVolts = inputRegs[GRID_VOLTS];
+                    status.nGridFreq = inputRegs[GRID_FREQ];
+                    status.nAcOutVolts = inputRegs[AC_OUT_VOLTS];
+                    status.nAcOutFreq = inputRegs[AC_OUT_FREQ];
+                    status.nDcOutVolts = inputRegs[DC_OUT_VOLTS];
+                    status.nInverterTemp = inputRegs[INVERTER_TEMP];
+                    status.nDCDCTemp = inputRegs[DCDC_TEMP];
+                    status.nLoadPercent = inputRegs[LOAD_PERCENT];
+                    status.nBattPortVolts = inputRegs[BATT_PORT_VOLTS];
+                    status.nBattBusVolts = inputRegs[BATT_BUS_VOLTS];
+                    status.nBuck1Temp = inputRegs[BUCK1_TEMP];
+                    status.nBuck2Temp = inputRegs[BUCK2_TEMP];
+                    status.nOutputAmps = inputRegs[OUTPUT_AMPS];
+                    status.nInverterAmps = inputRegs[INVERTER_AMPS];
+                    status.nAcInputWattsH = inputRegs[AC_INPUT_WATTS_H];
+                    status.nAcInputWattsL = inputRegs[AC_INPUT_WATTS_L];
+                    status.nAcchgegyToday = inputRegs[ACCHGEGY_TODAY_L];
+                    status.nBattuseToday = inputRegs[BATTUSE_TODAY_L];
+                    status.nAcUseToday = inputRegs[AC_USE_TODAY_L];
+                    status.nAcBattchgAmps = inputRegs[AC_BATTCHG_AMPS];
+                    status.nAcUseWatts = inputRegs[AC_USE_WATTS_L];
+                    status.nBattuseWatts = inputRegs[BATTUSE_WATTS_L];
+                    status.nBattWatts = inputRegs[BATT_WATTS_L];
+                    status.nMpptFanspeed = inputRegs[MPPT_FANSPEED];
+                    status.nInvFanspeed = inputRegs[INV_FANSPEED];
+                
+                    //Auto/manual grid switching.
+                    if(SYSTEM_STATE_DAY == status.nSystemState &&
+                       (status.nLoadPercent > SWITCH_TO_GRID_LOAD_PERCENT || bManualSwitchToGrid))
+                    {
+                        bManualSwitchToGrid = false;
+                        status.nSystemState = SYSTEM_STATE_BYPASS;
+                        nInverterMode = GW_CFG_MODE_GRID;
+                        write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
+                        status.slSwitchTime = time(NULL);
+                        printf("Switched to grid due to overload/override.\n");
+                    }
+                    
+                    //Day/night switching.
+                    if(SYSTEM_STATE_NIGHT == status.nSystemState)
+                    {
+                        //Currently night. Switch to day?
+                        if((timeinfo->tm_hour < SYSTEM_NIGHT_H && timeinfo->tm_min < SYSTEM_NIGHT_M) ||
+                           (timeinfo->tm_hour >= SYSTEM_DAY_H && timeinfo->tm_min >= SYSTEM_NIGHT_M))
+                        {
+                            status.nSystemState = SYSTEM_STATE_DAY;
+                            nInverterMode = GW_CFG_MODE_BATTS;
+                            write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
+                            printf("Switched to day.\n");
+                        }
+                    }
+                    else
+                    {
+                        //Currently day/bypassed. Switch to night?
+                        if((timeinfo->tm_hour >= SYSTEM_NIGHT_H && timeinfo->tm_min >= SYSTEM_NIGHT_M) ||
+                           (timeinfo->tm_hour < SYSTEM_DAY_H && timeinfo->tm_min < SYSTEM_NIGHT_M))
+                        {
+                            status.nSystemState = SYSTEM_STATE_NIGHT;
+                            nInverterMode = GW_CFG_MODE_GRID;
+                            write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
+                            printf("Switched to night.\n");
+                        }
+                    }
+                    
+                    //Auto/manual batts switching.
+                    if(SYSTEM_STATE_BYPASS == status.nSystemState &&
+                       ((status.nLoadPercent <= SWITCH_TO_GRID_LOAD_PERCENT &&
+                         time(NULL) > status.slSwitchTime + RETURN_TO_BATTS_TIME) ||
+                        bManualSwitchToBatts))
+                    {
+                        bManualSwitchToBatts = false;
+                        status.nSystemState = SYSTEM_STATE_DAY;
+                        nInverterMode = GW_CFG_MODE_BATTS;
+                        write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
+                        printf("Switched to batts due to overload expiry/override.\n");
+                    }
+                    
+                    //Final state check. (Note: inverter mode is read back from inverter on next pass).
+                    switch(status.nSystemState)
+                    {
+                        case SYSTEM_STATE_DAY:
+                        {
+                            if(GW_CFG_MODE_BATTS != nInverterMode)
+                            {
+                                nInverterMode = GW_CFG_MODE_BATTS;
+                                write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
+                                printf("Wasn't on batts as expected. Rewrote holding register.\n");
+                            }
+                        }
+                        break;
+                        
+                        case SYSTEM_STATE_BYPASS:
+                        case SYSTEM_STATE_NIGHT:
+                        {
+                            if(GW_CFG_MODE_GRID != nInverterMode)
+                            {
+                                nInverterMode = GW_CFG_MODE_GRID;
+                                write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
+                                printf("Wasn't on grid as expected. Rewrote holding register.\n");
+                            }
+                        }
+                        break;
+                    }
+                    
+                    if(write_rc < 0)
+                    {
+                        printf("A holding register write failed.\n");
+                        reinit();
+                    }
+                }
+            }
+            break;
+
+            case DEINIT:
+            {
+                modbus_close(ctx);
+                modbus_free(ctx);
+                modbusState = DIE;
+            }
+            break;
+
+            default: {}
+        }
+    }
+
+    return NULL;
+}
 
 int main()
 {  
-    modbus_t *ctx;
-    int rc;
-    uint16_t tab_ireg[INPUT_REG_COUNT]; // To store the read data
-    uint16_t tab_hreg[INPUT_REG_COUNT]; // To store the read data
-
-    // Create a new Modbus context
-    ctx = modbus_new_rtu("/dev/ttyXRUSB0", 9600, 'N', 8, 1);
-    if (ctx == NULL) {
-        fprintf(stderr, "Unable to create the libmodbus context\n");
-        return -1;
-    }
-
-    // Connect to the Modbus server (slave)
-    if (modbus_connect(ctx) == -1) {
-        fprintf(stderr, "Connection failed: %s\n", modbus_strerror(errno));
-        modbus_free(ctx);
-        return -1;
-    }
-
-    // Set the Modbus address of the remote device (slave)
-    modbus_set_slave(ctx, 1); // Replace 1 with the appropriate slave address
-
-    oTimer = current_time_millis();
-    oTimeEnd = oTimer + 1000;
+    char input;
+    pthread_t thread_modbus;
     
-    while(oTimer < oTimeEnd)
+    memset(&status, 0x00, sizeof(struct SystemStatus));
+
+    if (pthread_create(&thread_modbus, NULL, modbus_thread, NULL) != 0)
     {
-        rc = modbus_read_input_registers(ctx, 0, INPUT_REGISTER_COUNT, &status.nInverterState);
-    
-        /*rc = modbus_read_input_registers(ctx, STATUS, 1, &status.nInverterState);
-        rc = modbus_read_input_registers(ctx, OUTPUT_WATTS_L, 1, &status.nOutputWatts);
-        rc = modbus_read_input_registers(ctx, OUTPUT_APPPWR_L, 3, &status.nOutputApppwr);
-        rc = modbus_read_input_registers(ctx, BATTERY_VOLTS, 1, &status.nBatteryVolts);
-        rc = modbus_read_input_registers(ctx, BUS_VOLTS, 11, &status.nBusVolts);
-        rc = modbus_read_input_registers(ctx, BUCK1_TEMP, 6, &status.nBuck1Temp);
-        rc = modbus_read_input_registers(ctx, ACCHGEGY_TODAY_L, 1, &status.nAcchgegyToday);
-        rc = modbus_read_input_registers(ctx, BATTUSE_TODAY_L, 1, &status.nBattuseToday);
-        rc = modbus_read_input_registers(ctx, AC_USE_TODAY_L, 1, &status.nAcUseToday);
-        rc = modbus_read_input_registers(ctx, AC_BATTCHG_AMPS, 1, &status.nAcBattchgAmps);
-        rc = modbus_read_input_registers(ctx, AC_USE_WATTS_L, 1, &status.nAcUseWatts);
-        rc = modbus_read_input_registers(ctx, BATTUSE_WATTS_L, 1, &status.nBattuseWatts);
-        rc = modbus_read_input_registers(ctx, BATT_WATTS_L, 1, &status.nBattWatts);
-        rc = modbus_read_input_registers(ctx, MPPT_FANSPEED, 2, &status.nMpptFanspeed);*/
-    
-        /*rc = modbus_read_input_registers(ctx, OUTPUT_WATTS_L, 1, &status.nOutputWatts);
-        rc = modbus_read_input_registers(ctx, OUTPUT_APPPWR_L, 1, &status.nOutputApppwr);
-        rc = modbus_read_input_registers(ctx, AC_CHARGE_WATTS_H, 1, &status.nAcChargeWattsH);
-        rc = modbus_read_input_registers(ctx, AC_CHARGE_WATTS_L, 1, &status.nAcChargeWattsL);
-        rc = modbus_read_input_registers(ctx, BATTERY_VOLTS, 1, &status.nBatteryVolts);
-        rc = modbus_read_input_registers(ctx, BUS_VOLTS, 1, &status.nBusVolts);
-        rc = modbus_read_input_registers(ctx, GRID_VOLTS, 1, &status.nGridVolts);
-        rc = modbus_read_input_registers(ctx, GRID_FREQ, 1, &status.nGridFreq);
-        rc = modbus_read_input_registers(ctx, AC_OUT_VOLTS, 1, &status.nAcOutVolts);
-        rc = modbus_read_input_registers(ctx, AC_OUT_FREQ, 1, &status.nAcOutFreq);
-        rc = modbus_read_input_registers(ctx, DC_OUT_VOLTS, 1, &status.nDcOutVolts);
-        rc = modbus_read_input_registers(ctx, INVERTER_TEMP, 1, &status.nInverterTemp);
-        rc = modbus_read_input_registers(ctx, DCDC_TEMP, 1, &status.nDCDCTemp);
-        rc = modbus_read_input_registers(ctx, LOAD_PERCENT, 1, &status.nLoadPercent);
-        rc = modbus_read_input_registers(ctx, BATT_PORT_VOLTS, 1, &status.nBattPortVolts);
-        rc = modbus_read_input_registers(ctx, BATT_BUS_VOLTS, 1, &status.nBattBusVolts);
-        rc = modbus_read_input_registers(ctx, BUCK1_TEMP, 1, &status.nBuck1Temp);
-        rc = modbus_read_input_registers(ctx, BUCK2_TEMP, 1, &status.nBuck2Temp);
-        rc = modbus_read_input_registers(ctx, OUTPUT_AMPS, 1, &status.nOutputAmps);
-        rc = modbus_read_input_registers(ctx, INVERTER_AMPS, 1, &status.nInverterAmps);
-        rc = modbus_read_input_registers(ctx, AC_INPUT_WATTS_H, 1, &status.nAcInputWattsH);
-        rc = modbus_read_input_registers(ctx, AC_INPUT_WATTS_L, 1, &status.nAcInputWattsL);
-        rc = modbus_read_input_registers(ctx, ACCHGEGY_TODAY_L, 1, &status.nAcchgegyToday);
-        rc = modbus_read_input_registers(ctx, BATTUSE_TODAY_L, 1, &status.nBattuseToday);
-        rc = modbus_read_input_registers(ctx, AC_USE_TODAY_L, 1, &status.nAcUseToday);
-        rc = modbus_read_input_registers(ctx, AC_BATTCHG_AMPS, 1, &status.nAcBattchgAmps);
-        rc = modbus_read_input_registers(ctx, AC_USE_WATTS_L, 1, &status.nAcUseWatts);
-        rc = modbus_read_input_registers(ctx, BATTUSE_WATTS_L, 1, &status.nBattuseWatts);
-        rc = modbus_read_input_registers(ctx, BATT_WATTS_L, 1, &status.nBattWatts);
-        rc = modbus_read_input_registers(ctx, MPPT_FANSPEED, 1, &status.nMpptFanspeed);
-        rc = modbus_read_input_registers(ctx, INV_FANSPEED, 1, &status.nInvFanspeed);*/
-        
-        printf("-------========= Regs =========-------\n");
-        printf("nOutputWatts - %d\n", status.nOutputWatts);
-        printf("nOutputApppwr - %d\n", status.nOutputApppwr);
-        printf("nAcChargeWattsH - %d\n", status.nAcChargeWattsH);
-        printf("nAcChargeWattsL - %d\n", status.nAcChargeWattsL);
-        printf("nBatteryVolts - %d\n", status.nBatteryVolts);
-        printf("nBusVolts - %d\n", status.nBusVolts);
-        printf("nGridVolts - %d\n", status.nGridVolts);
-        printf("nGridFreq - %d\n", status.nGridFreq);
-        printf("nAcOutVolts - %d\n", status.nAcOutVolts);
-        printf("nAcOutFreq - %d\n", status.nAcOutFreq);
-        printf("nDcOutVolts - %d\n", status.nDcOutVolts);
-        printf("nInverterTemp - %d\n", status.nInverterTemp);
-        printf("nDCDCTemp - %d\n", status.nDCDCTemp);
-        printf("nLoadPercent - %d\n", status.nLoadPercent);
-        printf("nBattPortVolts - %d\n", status.nBattPortVolts);
-        printf("nBattBusVolts - %d\n", status.nBattBusVolts);
-        printf("nBuck1Temp - %d\n", status.nBuck1Temp);
-        printf("nBuck2Temp - %d\n", status.nBuck2Temp);
-        printf("nOutputAmps - %d\n", status.nOutputAmps);
-        printf("nInverterAmps - %d\n", status.nInverterAmps);
-        printf("nAcInputWattsH - %d\n", status.nAcInputWattsH);
-        printf("nAcInputWattsL - %d\n", status.nAcInputWattsL);
-        printf("nAcchgegyToday - %d\n", status.nAcchgegyToday);
-        printf("nBattuseToday - %d\n", status.nBattuseToday);
-        printf("nAcUseToday - %d\n", status.nAcUseToday);
-        printf("nAcBattchgAmps - %d\n", status.nAcBattchgAmps);
-        printf("nAcUseWatts - %d\n", status.nAcUseWatts);
-        printf("nBattuseWatts - %d\n", status.nBattuseWatts);
-        printf("nBattWatts - %d\n", status.nBattWatts);
-        printf("nMpptFanspeed - %d\n", status.nMpptFanspeed);
-        printf("nInvFanspeed - %d\n", status.nInvFanspeed);
-        printf("--------------------------------------\n");
-
-        /*if (rc == -1) {
-            fprintf(stderr, "Read registers failed: %s\n", modbus_strerror(errno));
-            modbus_free(ctx);
-            return -1;
-        }*/
-        
-        
-/*  pStatus->nOutputWatts = inputRegs[OUTPUT_WATTS_L];
-    pStatus->nOutputApppwr = inputRegs[OUTPUT_APPPWR_L];
-    pStatus->nAcChargeWattsH = inputRegs[AC_CHARGE_WATTS_H];
-    pStatus->nAcChargeWattsL = inputRegs[AC_CHARGE_WATTS_L];
-    pStatus->nBatteryVolts = inputRegs[BATTERY_VOLTS];
-    pStatus->nBusVolts = inputRegs[BUS_VOLTS];
-    pStatus->nGridVolts = inputRegs[GRID_VOLTS];
-    pStatus->nGridFreq = inputRegs[GRID_FREQ];
-    pStatus->nAcOutVolts = inputRegs[AC_OUT_VOLTS];
-    pStatus->nAcOutFreq = inputRegs[AC_OUT_FREQ];
-    pStatus->nDcOutVolts = inputRegs[DC_OUT_VOLTS];
-    pStatus->nInverterTemp = inputRegs[INVERTER_TEMP];
-    pStatus->nDCDCTemp = inputRegs[DCDC_TEMP];
-    pStatus->nLoadPercent = inputRegs[LOAD_PERCENT];
-    pStatus->nBattPortVolts = inputRegs[BATT_PORT_VOLTS];
-    pStatus->nBattBusVolts = inputRegs[BATT_BUS_VOLTS];
-    pStatus->nBuck1Temp = inputRegs[BUCK1_TEMP];
-    pStatus->nBuck2Temp = inputRegs[BUCK2_TEMP];
-    pStatus->nOutputAmps = inputRegs[OUTPUT_AMPS];
-    pStatus->nInverterAmps = inputRegs[INVERTER_AMPS];
-    pStatus->nAcInputWattsH = inputRegs[AC_INPUT_WATTS_H];
-    pStatus->nAcInputWattsL = inputRegs[AC_INPUT_WATTS_L];
-    pStatus->nAcchgegyToday = inputRegs[ACCHGEGY_TODAY_L];
-    pStatus->nBattuseToday = inputRegs[BATTUSE_TODAY_L];
-    pStatus->nAcUseToday = inputRegs[AC_USE_TODAY_L];
-    pStatus->nAcBattchgAmps = inputRegs[AC_BATTCHG_AMPS];
-    pStatus->nAcUseWatts = inputRegs[AC_USE_WATTS_L];
-    pStatus->nBattuseWatts = inputRegs[BATTUSE_WATTS_L];
-    pStatus->nBattWatts = inputRegs[BATT_WATTS_L];
-    pStatus->nMpptFanspeed = inputRegs[MPPT_FANSPEED];
-    pStatus->nInvFanspeed = inputRegs[INV_FANSPEED];*/
-    
-        /*rc = modbus_read_input_registers(ctx, 0, INPUT_REG_COUNT, tab_ireg);
-        if (rc == -1) {
-            fprintf(stderr, "Read registers failed: %s\n", modbus_strerror(errno));
-            modbus_free(ctx);
-            return -1;
-        }
-
-        // Print the response
-        for (int i = 0; i < INPUT_REG_COUNT; i++) {
-            printf("Register %d: %d\n", i, tab_ireg[i]);
-        }*/
-        
-        /*rc = modbus_read_registers(ctx, 0, HOLDING_REG_COUNT, tab_hreg);
-        if (rc == -1) {
-            fprintf(stderr, "Read registers failed: %s\n", modbus_strerror(errno));
-            modbus_free(ctx);
-            return -1;
-        }
-
-        // Print the response
-        for (int i = 0; i < HOLDING_REG_COUNT; i++) {
-            printf("Register %d: %d\n", i, tab_hreg[i]);
-        }*/
-        
-        lCounts++;
-        oTimer = current_time_millis();
+        printf("Error creating modbus thread.\n");
+        return 1;
     }
     
-    printf("%d hits in %lldms.\n", lCounts, oTimer - oTimeEnd + 1000);
+    while (bRunning)
+    {
+        input = getchar();
 
-    // Disconnect and cleanup
-    modbus_close(ctx);
-    modbus_free(ctx);
+        switch (input)
+        {
+            case 'q':
+            {
+                bRunning = false;
+                modbusState = DEINIT;
+            }
+            break;
 
+            case 's':
+            {
+                printf("---=== Status ===---\n");
+                printf("nSystemState\t%d\n", status.nSystemState);
+                printf("nModbusFPS\t%d\n", status.nModbusFPS);
+                printf("nInverterState\t%d\n", status.nInverterState);
+                printf("nOutputWatts\t%d\n", status.nOutputWatts);
+                printf("nOutputApppwr\t%d\n", status.nOutputApppwr);
+                printf("nAcChargeWattsH\t%d\n", status.nAcChargeWattsH);
+                printf("nAcChargeWattsL\t%d\n", status.nAcChargeWattsL);
+                printf("nBatteryVolts\t%d\n", status.nBatteryVolts);
+                printf("nBusVolts\t%d\n", status.nBusVolts);
+                printf("nGridVolts\t%d\n", status.nGridVolts);
+                printf("nGridFreq\t%d\n", status.nGridFreq);
+                printf("nAcOutVolts\t%d\n", status.nAcOutVolts);
+                printf("nAcOutFreq\t%d\n", status.nAcOutFreq);
+                printf("nDcOutVolts\t%d\n", status.nDcOutVolts);
+                printf("nInverterTemp\t%d\n", status.nInverterTemp);
+                printf("nDCDCTemp\t%d\n", status.nDCDCTemp);
+                printf("nLoadPercent\t%d\n", status.nLoadPercent);
+                printf("nBattPortVolts\t%d\n", status.nBattPortVolts);
+                printf("nBattBusVolts\t%d\n", status.nBattBusVolts);
+                printf("nBuck1Temp\t%d\n", status.nBuck1Temp);
+                printf("nBuck2Temp\t%d\n", status.nBuck2Temp);
+                printf("nOutputAmps\t%d\n", status.nOutputAmps);
+                printf("nInverterAmps\t%d\n", status.nInverterAmps);
+                printf("nAcInputWattsH\t%d\n", status.nAcInputWattsH);
+                printf("nAcInputWattsL\t%d\n", status.nAcInputWattsL);
+                printf("nAcchgegyToday\t%d\n", status.nAcchgegyToday);
+                printf("nBattuseToday\t%d\n", status.nBattuseToday);
+                printf("nAcUseToday\t%d\n", status.nAcUseToday);
+                printf("nAcBattchgAmps\t%d\n", status.nAcBattchgAmps);
+                printf("nAcUseWatts\t%d\n", status.nAcUseWatts);
+                printf("nBattuseWatts\t%d\n", status.nBattuseWatts);
+                printf("nBattWatts\t%d\n", status.nBattWatts);
+                printf("nMpptFanspeed\t%d\n", status.nMpptFanspeed);
+                printf("nInvFanspeed\t%d\n", status.nInvFanspeed);
+                printf("--------------------\n");
+            }
+            break;
+
+            default:
+            {
+                printf("---=== %c unknown - available Commands ===---\n", input);
+                printf("q - Quit\n");
+                printf("s - Print latest status\n");
+                printf("--------------------------------\n");
+                break;
+            }
+        }
+    }
+    
+    printf("Waiting for threads to finish...\n");
+    pthread_join(thread_modbus, NULL);
+    printf("...MODBUS done...\n");
+    printf("Done.\n");
     return 0;
 }
 

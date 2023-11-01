@@ -9,18 +9,18 @@
 #define SYSTEM_DAY_H    5
 #define SYSTEM_DAY_M    30
 
-enum SystemState
-{
-    SYSTEM_STATE_DAY = 0,       /* Running on batteries */
-    SYSTEM_STATE_DAY_BYPASS,    /* Temporarily grid-switched */
-    SYSTEM_STATE_NIGHT          /* Grid-switched and charging batteries */
-};
+#define RETURN_TO_BATTS_TIME 3600 /* One hour in seconds to return back to batteries after override/overload */
 
-struct Status
+#define SYSTEM_STATE_DAY    0 /* Running on batteries */
+#define SYSTEM_STATE_BYPASS 1 /* Temporarily grid-switched */
+#define SYSTEM_STATE_NIGHT  2 /* Grid-switched and charging batteries */
+
+struct SystemStatus
 {
     //Program status.
-    uint16_t cSystemState;
+    uint16_t nSystemState;
     uint16_t nModbusFPS;
+    int32_t  slSwitchTime;
     
     //Inverter status.
     uint16_t nInverterState;
