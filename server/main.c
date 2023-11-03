@@ -207,7 +207,7 @@ void* modbus_thread(void* arg)
                     }
                     
                     //Final state check. (Note: inverter mode is read back from inverter on next pass).
-                    switch(status.nSystemState)
+                    /*switch(status.nSystemState)
                     {
                         case SYSTEM_STATE_DAY:
                         {
@@ -231,7 +231,7 @@ void* modbus_thread(void* arg)
                             }
                         }
                         break;
-                    }
+                    }*/
                     
                     if(write_rc < 0)
                     {
@@ -298,10 +298,10 @@ int main()
                 
                 switch(status.nSystemState)
                 {
-                    case SYSTEM_STATE_DAY: printf("nSystemState\tDAY\n\n"); break;
-                    case SYSTEM_STATE_BYPASS: printf("nSystemState\tBYPASS\n\n"); break;
-                    case SYSTEM_STATE_NIGHT: printf("nSystemState\tNIGHT\n\n"); break;
-                    default: printf("nSystemState\tGOD KNOWS! (%d)\n\n", status.nSystemState); break;
+                    case SYSTEM_STATE_DAY: printf("nSystemState\tDAY\n"); break;
+                    case SYSTEM_STATE_BYPASS: printf("nSystemState\tBYPASS\n"); break;
+                    case SYSTEM_STATE_NIGHT: printf("nSystemState\tNIGHT\n"); break;
+                    default: printf("nSystemState\tGOD KNOWS! (%d)\n", status.nSystemState); break;
                 }
                 
                 printf("nModbusFPS\t%d\n", status.nModbusFPS);
