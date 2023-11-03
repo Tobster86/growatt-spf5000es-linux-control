@@ -38,6 +38,7 @@ bool bManualSwitchToBatts = false;
 
 void* network_thread(void* arg)
 {
+    return NULL;
 }
 
 static void reinit()
@@ -79,6 +80,8 @@ void* modbus_thread(void* arg)
                 {
                     reinit();
                 }
+                
+                printf("MODBUS initialised. Going to processing.\n");
             }
             break;
 
@@ -225,6 +228,7 @@ void* modbus_thread(void* arg)
                 modbus_close(ctx);
                 modbus_free(ctx);
                 modbusState = DIE;
+                printf("MODBUS deinitialised.\n");
             }
             break;
 
@@ -301,12 +305,28 @@ int main()
                 printf("--------------------\n");
             }
             break;
+            
+            case 'g':
+            {
+                printf("Forcing grid...\n");
+                bManualSwitchToGrid = true;
+            }
+            break;
+            
+            case 'b':
+            {
+                printf("Forcing batteries...\n");
+                bManualSwitchToBatts = true;
+            }
+            break;
 
             default:
             {
                 printf("---=== %c unknown - available Commands ===---\n", input);
                 printf("q - Quit\n");
                 printf("s - Print latest status\n");
+                printf("g - Manual grid mode\n");
+                printf("b - Manual battery mode\n");
                 printf("--------------------------------\n");
                 break;
             }

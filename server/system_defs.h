@@ -57,7 +57,7 @@ struct SystemStatus
     uint16_t nInvFanspeed;
 };
 
-void GrowattInputRegsToSystem(struct Status* pStatus, uint16_t* inputRegs);
+void GrowattInputRegsToSystem(struct SystemStatus* pStatus, uint16_t* inputRegs);
 
 #endif
 
