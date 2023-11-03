@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <termios.h>
 #include <string.h>
@@ -36,6 +37,31 @@ uint16_t nInverterMode;
 bool bManualSwitchToGrid = false;
 bool bManualSwitchToBatts = false;
 
+uint16_t nLastInverterMode = 0xFFFF;
+uint16_t nLastSystemState = 0xFFFF;
+uint16_t nLastInverterState = 0xFFFF;
+
+void printft(const char* format, ...)
+{
+    va_list args;
+    va_start(args, format);
+
+    // Get the current time
+    time_t rawtime;
+    struct tm* timeinfo;
+    char timestamp[20]; // Adjust the size as needed
+
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", timeinfo);
+
+    // Print the timestamp and the formatted message
+    printf("[%s] ", timestamp);
+    vprintf(format, args);
+
+    va_end(args);
+}
+
 // Function to set the terminal to non-canonical mode for single character input
 void set_terminal_mode()
 {
@@ -61,7 +87,7 @@ void* network_thread(void* arg)
 
 static void reinit()
 {
-    printf("MODBUS comms reinit.\n");
+    printft("MODBUS comms reinit.\n");
 
     if(ctx != NULL)
     {
@@ -99,7 +125,7 @@ void* modbus_thread(void* arg)
                     reinit();
                 }
                 
-                printf("MODBUS initialised. Going to processing.\n");
+                printft("MODBUS initialised. Going to processing.\n");
             }
             break;
 
@@ -164,7 +190,7 @@ void* modbus_thread(void* arg)
                         nInverterMode = GW_CFG_MODE_GRID;
                         write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
                         status.slSwitchTime = time(NULL);
-                        printf("Switched to grid due to overload/override.\n");
+                        printft("Switched to grid due to overload/override.\n");
                     }
                     
                     //Day/night switching.
@@ -177,7 +203,7 @@ void* modbus_thread(void* arg)
                             status.nSystemState = SYSTEM_STATE_DAY;
                             nInverterMode = GW_CFG_MODE_BATTS;
                             write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
-                            printf("Switched to day.\n");
+                            printft("Switched to day.\n");
                         }
                     }
                     else
@@ -189,7 +215,7 @@ void* modbus_thread(void* arg)
                             status.nSystemState = SYSTEM_STATE_NIGHT;
                             nInverterMode = GW_CFG_MODE_GRID;
                             write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
-                            printf("Switched to night.\n");
+                            printft("Switched to night.\n");
                         }
                     }
                     
@@ -203,7 +229,7 @@ void* modbus_thread(void* arg)
                         status.nSystemState = SYSTEM_STATE_DAY;
                         nInverterMode = GW_CFG_MODE_BATTS;
                         write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
-                        printf("Switched to batts due to overload expiry/override.\n");
+                        printft("Switched to batts due to overload expiry/override.\n");
                     }
                     
                     //Final state check. (Note: inverter mode is read back from inverter on next pass).
@@ -215,7 +241,7 @@ void* modbus_thread(void* arg)
                             {
                                 nInverterMode = GW_CFG_MODE_BATTS;
                                 write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
-                                printf("Wasn't on batts as expected. Rewrote holding register.\n");
+                                printft("Wasn't on batts as expected. Rewrote holding register.\n");
                             }
                         }
                         break;
@@ -227,15 +253,54 @@ void* modbus_thread(void* arg)
                             {
                                 nInverterMode = GW_CFG_MODE_GRID;
                                 write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
-                                printf("Wasn't on grid as expected. Rewrote holding register.\n");
+                                printft("Wasn't on grid as expected. Rewrote holding register.\n");
                             }
                         }
                         break;
                     }*/
                     
+                    //Print state changes.
+                    if(nLastInverterMode != nInverterMode)
+                    {
+                        printft("nInverterMode changed to ");
+                        switch(nInverterMode)
+                        {
+                            case GW_CFG_MODE_BATTS: printf("BATTERIES\n"); break;
+                            case GW_CFG_MODE_GRID: printf("GRID\n"); break;
+                            default: printf("GOD KNOWS! (%d)\n", nInverterMode); break;
+                        }
+                
+                        nLastInverterMode = nInverterMode;
+                    }
+                    
+                    if(nLastSystemState != status.nSystemState)
+                    {
+                        printft("nSystemState changed to ");
+                        switch(status.nSystemState)
+                        {
+                            case SYSTEM_STATE_DAY: printf("DAY\n"); break;
+                            case SYSTEM_STATE_BYPASS: printf("BYPASS\n"); break;
+                            case SYSTEM_STATE_NIGHT: printf("NIGHT\n"); break;
+                            default: printf("GOD KNOWS! (%d)\n", status.nSystemState); break;
+                        }
+                
+                        nLastSystemState = status.nSystemState;
+                    }
+                    
+                    if(nLastInverterState != status.nInverterState)
+                    {
+                        printft("nSystemState changed to ");
+                        if(status.nInverterState >= 0 && status.nInverterState < INVERTER_STATE_COUNT)
+                            printf("%s\n", GwInverterStatusStrings[status.nInverterState]);
+                        else
+                            printf("UNKNOWN (%d)\n", status.nInverterState);
+                            
+                        nLastInverterState = status.nInverterState;
+                    }
+                    
                     if(write_rc < 0)
                     {
-                        printf("A holding register write failed.\n");
+                        printft("A holding register write failed.\n");
                         reinit();
                     }
                 }
@@ -247,7 +312,7 @@ void* modbus_thread(void* arg)
                 modbus_close(ctx);
                 modbus_free(ctx);
                 modbusState = DIE;
-                printf("MODBUS deinitialised.\n");
+                printft("MODBUS deinitialised.\n");
             }
             break;
 
