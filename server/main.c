@@ -289,11 +289,28 @@ int main()
             case 's':
             {
                 printf("---=== Status ===---\n");
-                printf("nInverterMode\t%d\n\n", nInverterMode);
+                switch(nInverterMode)
+                {
+                    case GW_CFG_MODE_BATTS: printf("nInverterMode\tBATTERIES\n\n"); break;
+                    case GW_CFG_MODE_GRID: printf("nInverterMode\tGRID\n\n"); break;
+                    default: printf("nInverterMode\tGOD KNOWS! (%d)\n\n", nInverterMode); break;
+                }
                 
-                printf("nSystemState\t%d\n", status.nSystemState);
+                switch(status.nSystemState)
+                {
+                    case SYSTEM_STATE_DAY: printf("nSystemState\tDAY\n\n"); break;
+                    case SYSTEM_STATE_BYPASS: printf("nSystemState\tBYPASS\n\n"); break;
+                    case SYSTEM_STATE_NIGHT: printf("nSystemState\tNIGHT\n\n"); break;
+                    default: printf("nSystemState\tGOD KNOWS! (%d)\n\n", status.nSystemState); break;
+                }
+                
                 printf("nModbusFPS\t%d\n", status.nModbusFPS);
-                printf("nInverterState\t%d\n", status.nInverterState);
+                
+                if(status.nInverterState >= 0 && status.nInverterState < INVERTER_STATE_COUNT)
+                    printf("nInverterState\t%s\n", GwInverterStatusStrings[status.nInverterState]);
+                else
+                    printf("nInverterState\t UNKNOWN (%d)\n", status.nInverterState);
+                
                 printf("nOutputWatts\t%d\n", status.nOutputWatts);
                 printf("nOutputApppwr\t%d\n", status.nOutputApppwr);
                 printf("nAcChargeWattsH\t%d\n", status.nAcChargeWattsH);
