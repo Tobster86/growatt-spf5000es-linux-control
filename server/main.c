@@ -122,6 +122,7 @@ void* modbus_thread(void* arg)
                     timeinfo = localtime(&rawtime);
                 
                     //Store relevant input register values.
+                    status.nInverterState = inputRegs[STATUS];
                     status.nOutputWatts = inputRegs[OUTPUT_WATTS_L];
                     status.nOutputApppwr = inputRegs[OUTPUT_APPPWR_L];
                     status.nAcChargeWattsH = inputRegs[AC_CHARGE_WATTS_H];
@@ -226,7 +227,7 @@ void* modbus_thread(void* arg)
                             {
                                 nInverterMode = GW_CFG_MODE_GRID;
                                 write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
-                                printf("Wasn't ons grid as expected. Rewrote holding register.\n");
+                                printf("Wasn't on grid as expected. Rewrote holding register.\n");
                             }
                         }
                         break;
