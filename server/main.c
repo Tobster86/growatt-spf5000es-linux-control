@@ -70,7 +70,7 @@ static void reinit()
     }
 
     modbusState = INIT;
-    sleep(1);
+    sleep(5);
 }
 
 void* modbus_thread(void* arg)
@@ -226,7 +226,7 @@ void* modbus_thread(void* arg)
                             {
                                 nInverterMode = GW_CFG_MODE_GRID;
                                 write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
-                                printf("Wasn't on grid as expected. Rewrote holding register.\n");
+                                printf("Wasn't ons grid as expected. Rewrote holding register.\n");
                             }
                         }
                         break;
@@ -288,6 +288,8 @@ int main()
             case 's':
             {
                 printf("---=== Status ===---\n");
+                printf("nInverterMode\t%d\n\n", nInverterMode);
+                
                 printf("nSystemState\t%d\n", status.nSystemState);
                 printf("nModbusFPS\t%d\n", status.nModbusFPS);
                 printf("nInverterState\t%d\n", status.nInverterState);
