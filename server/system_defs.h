@@ -9,7 +9,9 @@
 #define SYSTEM_DAY_H    5
 #define SYSTEM_DAY_M    30
 
-#define RETURN_TO_BATTS_TIME 3600 /* One hour in seconds to return back to batteries after override/overload */
+#define RETURN_TO_BATTS_TIME        3600 //One hour in seconds to return back to batteries after override/overload */
+#define SWITCH_TO_GRID_LOAD_PERCENT 950  //The raw value is actually permille.
+#define CHECK_MODE_TIMEOUT          10   //Number of seconds to check the mode after changing it.
 
 #define SYSTEM_STATE_DAY    0 /* Running on batteries */
 #define SYSTEM_STATE_BYPASS 1 /* Temporarily grid-switched */

@@ -17,8 +17,6 @@
 #include "spf5000es_defs.h"
 #include "system_defs.h"
 
-#define SWITCH_TO_GRID_LOAD_PERCENT 950 //The raw value is actually permille.
-
 bool bRunning = true;
 
 enum ModbusState
@@ -36,6 +34,7 @@ struct SystemStatus status;
 uint16_t nInverterMode;
 bool bManualSwitchToGrid = false;
 bool bManualSwitchToBatts = false;
+int32_t slModeWriteTime;
 
 uint16_t nLastInverterMode = 0xFFFF;
 uint16_t nLastSystemState = 0xFFFF;
@@ -190,6 +189,7 @@ void* modbus_thread(void* arg)
                         nInverterMode = GW_CFG_MODE_GRID;
                         write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
                         status.slSwitchTime = time(NULL);
+                        slModeWriteTime = time(NULL);
                         printft("Switched to grid due to overload/override.\n");
                     }
                     
@@ -203,6 +203,7 @@ void* modbus_thread(void* arg)
                             status.nSystemState = SYSTEM_STATE_DAY;
                             nInverterMode = GW_CFG_MODE_BATTS;
                             write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
+                            slModeWriteTime = time(NULL);
                             printft("Switched to day.\n");
                         }
                     }
@@ -215,6 +216,7 @@ void* modbus_thread(void* arg)
                             status.nSystemState = SYSTEM_STATE_NIGHT;
                             nInverterMode = GW_CFG_MODE_GRID;
                             write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
+                            slModeWriteTime = time(NULL);
                             printft("Switched to night.\n");
                         }
                     }
@@ -229,35 +231,41 @@ void* modbus_thread(void* arg)
                         status.nSystemState = SYSTEM_STATE_DAY;
                         nInverterMode = GW_CFG_MODE_BATTS;
                         write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
+                        slModeWriteTime = time(NULL);
                         printft("Switched to batts due to overload expiry/override.\n");
                     }
                     
                     //Final state check. (Note: inverter mode is read back from inverter on next pass).
-                    /*switch(status.nSystemState)
+                    if(slModeWriteTime + CHECK_MODE_TIMEOUT > time(NULL))
                     {
-                        case SYSTEM_STATE_DAY:
+                        switch(status.nSystemState)
                         {
-                            if(GW_CFG_MODE_BATTS != nInverterMode)
+                            case SYSTEM_STATE_DAY:
                             {
-                                nInverterMode = GW_CFG_MODE_BATTS;
-                                write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
-                                printft("Wasn't on batts as expected. Rewrote holding register.\n");
+                                if(GW_CFG_MODE_BATTS != nInverterMode)
+                                {
+                                    nInverterMode = GW_CFG_MODE_BATTS;
+                                    write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
+                                    printft("Wasn't on batts as expected. Rewrote holding register.\n");
+                                }
                             }
-                        }
-                        break;
-                        
-                        case SYSTEM_STATE_BYPASS:
-                        case SYSTEM_STATE_NIGHT:
-                        {
-                            if(GW_CFG_MODE_GRID != nInverterMode)
+                            break;
+                            
+                            case SYSTEM_STATE_BYPASS:
+                            case SYSTEM_STATE_NIGHT:
                             {
-                                nInverterMode = GW_CFG_MODE_GRID;
-                                write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
-                                printft("Wasn't on grid as expected. Rewrote holding register.\n");
+                                if(GW_CFG_MODE_GRID != nInverterMode)
+                                {
+                                    nInverterMode = GW_CFG_MODE_GRID;
+                                    write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
+                                    printft("Wasn't on grid as expected. Rewrote holding register.\n");
+                                }
                             }
+                            break;
+                            
+                            slModeWriteTime = time(NULL);
                         }
-                        break;
-                    }*/
+                    }
                     
                     //Print state changes.
                     if(nLastInverterMode != nInverterMode)
