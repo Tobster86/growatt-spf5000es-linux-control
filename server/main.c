@@ -61,24 +61,6 @@ void printft(const char* format, ...)
     va_end(args);
 }
 
-// Function to set the terminal to non-canonical mode for single character input
-void set_terminal_mode()
-{
-    struct termios t;
-    tcgetattr(STDIN_FILENO, &t);
-    t.c_lflag &= ~(ICANON | ECHO);
-    tcsetattr(STDIN_FILENO, TCSANOW, &t);
-}
-
-// Function to reset the terminal to the default mode
-void reset_terminal_mode()
-{
-    struct termios t;
-    tcgetattr(STDIN_FILENO, &t);
-    t.c_lflag |= ICANON | ECHO;
-    tcsetattr(STDIN_FILENO, TCSANOW, &t);
-}
-
 void* network_thread(void* arg)
 {
     return NULL;
@@ -337,8 +319,6 @@ int main()
     pthread_t thread_modbus;
     
     memset(&status, 0x00, sizeof(struct SystemStatus));
-    
-    set_terminal_mode();
 
     if (pthread_create(&thread_modbus, NULL, modbus_thread, NULL) != 0)
     {
@@ -445,8 +425,6 @@ int main()
             }
         }
     }
-    
-    reset_terminal_mode();
     
     printf("Waiting for threads to finish...\n");
     pthread_join(thread_modbus, NULL);
