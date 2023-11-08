@@ -218,7 +218,7 @@ void* modbus_thread(void* arg)
                     }
                     
                     //Final state check. (Note: inverter mode is read back from inverter on next pass).
-                    if(slModeWriteTime + CHECK_MODE_TIMEOUT > time(NULL))
+                    if(time(NULL) > slModeWriteTime + CHECK_MODE_TIMEOUT)
                     {
                         switch(status.nSystemState)
                         {
