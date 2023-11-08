@@ -279,7 +279,7 @@ void* modbus_thread(void* arg)
                     
                     if(nLastInverterState != status.nInverterState)
                     {
-                        printft("nSystemState changed to ");
+                        printft("nInverterState changed to ");
                         if(status.nInverterState >= 0 && status.nInverterState < INVERTER_STATE_COUNT)
                             printf("%s\n", GwInverterStatusStrings[status.nInverterState]);
                         else
