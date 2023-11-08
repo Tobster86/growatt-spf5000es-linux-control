@@ -170,8 +170,7 @@ void* modbus_thread(void* arg)
                     {
                         bManualSwitchToGrid = false;
                         status.nSystemState = SYSTEM_STATE_BYPASS;
-                        nInverterMode = GW_CFG_MODE_GRID;
-                        write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
+                        write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_GRID);
                         status.slSwitchTime = time(NULL);
                         slModeWriteTime = time(NULL);
                         printft("Switched to grid due to overload/override.\n");
@@ -184,8 +183,7 @@ void* modbus_thread(void* arg)
                         if(SYSTEM_STATE_NIGHT == status.nSystemState)
                         {
                             status.nSystemState = SYSTEM_STATE_DAY;
-                            nInverterMode = GW_CFG_MODE_BATTS;
-                            write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
+                            write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_BATTS);
                             slModeWriteTime = time(NULL);
                             printft("Switched to day.\n");
                         }
@@ -196,8 +194,7 @@ void* modbus_thread(void* arg)
                         if(SYSTEM_STATE_NIGHT != status.nSystemState)
                         {
                             status.nSystemState = SYSTEM_STATE_NIGHT;
-                            nInverterMode = GW_CFG_MODE_GRID;
-                            write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
+                            write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_GRID);
                             slModeWriteTime = time(NULL);
                             printft("Switched to night.\n");
                         }
@@ -211,8 +208,7 @@ void* modbus_thread(void* arg)
                     {
                         bManualSwitchToBatts = false;
                         status.nSystemState = SYSTEM_STATE_DAY;
-                        nInverterMode = GW_CFG_MODE_BATTS;
-                        write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
+                        write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_BATTS);
                         slModeWriteTime = time(NULL);
                         printft("Switched to batts due to overload expiry/override.\n");
                     }
