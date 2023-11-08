@@ -222,8 +222,7 @@ void* modbus_thread(void* arg)
                             {
                                 if(GW_CFG_MODE_BATTS != nInverterMode)
                                 {
-                                    nInverterMode = GW_CFG_MODE_BATTS;
-                                    write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
+                                    write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_BATTS);
                                     printft("Wasn't on batts as expected. Rewrote holding register.\n");
                                 }
                             }
@@ -234,8 +233,7 @@ void* modbus_thread(void* arg)
                             {
                                 if(GW_CFG_MODE_GRID != nInverterMode)
                                 {
-                                    nInverterMode = GW_CFG_MODE_GRID;
-                                    write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, nInverterMode);
+                                    write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_GRID);
                                     printft("Wasn't on grid as expected. Rewrote holding register.\n");
                                 }
                             }
