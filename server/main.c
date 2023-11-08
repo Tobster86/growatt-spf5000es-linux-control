@@ -197,7 +197,7 @@ void* modbus_thread(void* arg)
                     if(SYSTEM_STATE_NIGHT == status.nSystemState)
                     {
                         //Currently night. Switch to day?
-                        if((timeinfo->tm_hour < SYSTEM_NIGHT_H && timeinfo->tm_min < SYSTEM_NIGHT_M) ||
+                        if((timeinfo->tm_hour < SYSTEM_NIGHT_H && timeinfo->tm_min < SYSTEM_NIGHT_M) &&
                            (timeinfo->tm_hour >= SYSTEM_DAY_H && timeinfo->tm_min >= SYSTEM_NIGHT_M))
                         {
                             status.nSystemState = SYSTEM_STATE_DAY;
@@ -262,9 +262,9 @@ void* modbus_thread(void* arg)
                                 }
                             }
                             break;
-                            
-                            slModeWriteTime = time(NULL);
                         }
+                            
+                        slModeWriteTime = time(NULL);
                     }
                     
                     //Print state changes.
