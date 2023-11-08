@@ -145,6 +145,8 @@ void* modbus_thread(void* arg)
                     struct tm* timeinfo;
                     time(&rawtime);
                     timeinfo = localtime(&rawtime);
+                    int lHour = timeinfo->tm_hour;
+                    int lMin = timeinfo->tm_min;
                 
                     //Store relevant input register values.
                     status.nInverterState = inputRegs[STATUS];
@@ -194,11 +196,10 @@ void* modbus_thread(void* arg)
                     }
                     
                     //Day/night switching.
-                    if(SYSTEM_STATE_NIGHT == status.nSystemState)
+                    if ((lHour > 5 || (lHour == 5 && lMin >= 30)) && (lHour < 23 || (lHour == 23 && lMin <= 30)))
                     {
-                        //Currently night. Switch to day?
-                        if((timeinfo->tm_hour < SYSTEM_NIGHT_H && timeinfo->tm_min < SYSTEM_NIGHT_M) &&
-                           (timeinfo->tm_hour >= SYSTEM_DAY_H && timeinfo->tm_min >= SYSTEM_NIGHT_M))
+                        //Switch to day if night?
+                        if(SYSTEM_STATE_NIGHT == status.nSystemState)
                         {
                             status.nSystemState = SYSTEM_STATE_DAY;
                             nInverterMode = GW_CFG_MODE_BATTS;
@@ -209,9 +210,8 @@ void* modbus_thread(void* arg)
                     }
                     else
                     {
-                        //Currently day/bypassed. Switch to night?
-                        if((timeinfo->tm_hour >= SYSTEM_NIGHT_H && timeinfo->tm_min >= SYSTEM_NIGHT_M) ||
-                           (timeinfo->tm_hour < SYSTEM_DAY_H && timeinfo->tm_min < SYSTEM_NIGHT_M))
+                        //Switch to night if day/bypassed?
+                        if(SYSTEM_STATE_NIGHT != status.nSystemState)
                         {
                             status.nSystemState = SYSTEM_STATE_NIGHT;
                             nInverterMode = GW_CFG_MODE_GRID;
