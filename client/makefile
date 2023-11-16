@@ -3,12 +3,13 @@ CC = gcc
 
 # Source files
 SRC = $(wildcard *.c)
+#SRC = $(wildcard *.c) ../common/*.c
 
 # Output binary name
 TARGET = client
 
 # Flags for the compiler and linker
-CFLAGS = -Wall -I. -pthread -lSDL2  # Update the flags for SDL
+CFLAGS = -Wall -I../common -I. -pthread -lSDL2  # Update the flags for SDL
 LIBS = -lSDL2 -lcairo  # Update the libraries
 
 # Compile the program

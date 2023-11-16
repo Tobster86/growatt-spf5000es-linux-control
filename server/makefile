@@ -3,6 +3,7 @@ CC = gcc
 
 # Source files
 SRC = $(wildcard *.c)
+#SRC = $(wildcard *.c) ../common/*.c
 
 # Output binary name
 TARGET = server
@@ -12,7 +13,7 @@ MODBUS_INCLUDE = /usr/include/modbus/
 MODBUS_LIB = /usr/lib/arm-linux-gnueabihf
 
 # Flags for the compiler and linker
-CFLAGS = -Wall -I$(MODBUS_INCLUDE) -I. -pthread
+CFLAGS = -Wall -I$(MODBUS_INCLUDE) -I../common -I. -pthread
 LDFLAGS = -L$(MODBUS_LIB) -lmodbus -pthread
 
 # Compile the program
