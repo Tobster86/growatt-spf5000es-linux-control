@@ -26,8 +26,9 @@
 #define COMMS_OBJECT_HEADER_LENGTH  5
 #define COMMS_COMMAND_HEADER_LENGTH 3
 
-#define COMMS_ERROR_MESSAGE_TYPE_INVALID   0x00
-#define COMMS_ERROR_LENGTH_INVALID         0x01
+#define COMMS_ERROR_NONE                   0x00
+#define COMMS_ERROR_MESSAGE_TYPE_INVALID   0x01
+#define COMMS_ERROR_LENGTH_INVALID         0x02
 
 struct sdfComms;
 
@@ -47,6 +48,8 @@ struct sdfComms
     
     uint32_t lID;
     
+    uint8_t cLastError;
+    
     Transmit transmit;
     ObjectReceived objectReceived;
     CommandReceived commandReceived;
@@ -65,5 +68,7 @@ void Comms_Initialise(struct sdfComms* psdcComms,
 void Comms_Receive(struct sdfComms* psdcComms, uint8_t* pcData, uint16_t nLength);
 void Comms_SendObject(struct sdfComms* psdcComms, uint16_t nObjectID, uint16_t nLength, uint8_t* pcData);
 void Comms_SendCommand(struct sdfComms* psdcComms, uint16_t nCommandID);
+uint8_t Comms_LastError(struct sdfComms* psdcComms);
+void Comms_Deinit(struct sdfComms* psdcComms);
 
 #endif

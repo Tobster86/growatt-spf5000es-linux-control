@@ -3,10 +3,11 @@
 
 static void Comms_Error(struct sdfComms* psdcComms, uint8_t cErrorCode)
 {
-    if(NULL == psdcComms->pcPayload)
+    if(NULL != psdcComms->pcPayload)
         free(psdcComms->pcPayload);
         
     psdcComms->cState = COMMS_STATE_ERROR;
+    psdcComms->cLastError = cErrorCode;
     psdcComms->error(psdcComms, cErrorCode);
 }
 
@@ -17,7 +18,7 @@ static void Comms_FinishMessage(struct sdfComms* psdcComms)
     psdcComms->nReceivingLength = 0x0000;
     psdcComms->nPayloadWrite = 0x0000;
     
-    if(NULL == psdcComms->pcPayload)
+    if(NULL != psdcComms->pcPayload)
         free(psdcComms->pcPayload);
 }
 
@@ -145,4 +146,16 @@ void Comms_SendCommand(struct sdfComms* psdcComms, uint16_t nCommandID)
     
     free(pcSendData);
 }
+
+uint8_t Comms_LastError(struct sdfComms* psdcComms)
+{
+    return psdcComms->cLastError;
+}
+
+void Comms_Deinit(struct sdfComms* psdcComms)
+{
+    if(NULL != psdcComms->pcPayload)
+        free(psdcComms->pcPayload);
+}
+
 
