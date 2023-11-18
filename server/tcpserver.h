@@ -14,9 +14,4 @@ bool tcpserver_init();
  */
 void tcpserver_deinit();
 
-/**
- * Call to wait until the process thread has terminated.
- */
-void tcpserver_die();
-
 #endif

@@ -16,6 +16,7 @@
 
 #include "spf5000es_defs.h"
 #include "system_defs.h"
+#include "tcpserver.h"
 
 bool bRunning = true;
 
@@ -61,9 +62,10 @@ void printft(const char* format, ...)
     va_end(args);
 }
 
-void* network_thread(void* arg)
+void GetStatus(uint8_t** ppStatus, uint32_t* pLength)
 {
-    return NULL;
+    *ppStatus = (uint8_t*)&status;
+    *pLength = sizeof(struct SystemStatus);
 }
 
 static void reinit()
@@ -74,6 +76,7 @@ static void reinit()
     {
         modbus_close(ctx);
         modbus_free(ctx);
+        ctx = NULL;
     }
 
     modbusState = INIT;
@@ -293,8 +296,13 @@ void* modbus_thread(void* arg)
 
             case DEINIT:
             {
-                modbus_close(ctx);
-                modbus_free(ctx);
+                if(ctx != NULL)
+                {
+                    modbus_close(ctx);
+                    modbus_free(ctx);
+                    ctx = NULL;
+                }
+                
                 modbusState = DIE;
                 printft("MODBUS deinitialised.\n");
             }
@@ -314,121 +322,130 @@ int main()
     
     memset(&status, 0x00, sizeof(struct SystemStatus));
 
-    if (pthread_create(&thread_modbus, NULL, modbus_thread, NULL) != 0)
-    {
-        printf("Error creating modbus thread.\n");
-        return 1;
-    }
-    
-    while (bRunning)
-    {
-        input = getchar();
-
-        switch (input)
+    if (pthread_create(&thread_modbus, NULL, modbus_thread, NULL) == 0)
+    {    
+        if(tcpserver_init())
         {
-            case 'q':
+            while (bRunning)
             {
-                bRunning = false;
-                modbusState = DEINIT;
-            }
-            break;
+                input = getchar();
 
-            case 's':
-            {
-                printf("---=== Status ===---\n");
-                switch(nInverterMode)
+                switch (input)
                 {
-                    case GW_CFG_MODE_BATTS: printf("nInverterMode\tBATTERIES\n"); break;
-                    case GW_CFG_MODE_GRID: printf("nInverterMode\tGRID\n"); break;
-                    default: printf("nInverterMode\tGOD KNOWS! (%d)\n", nInverterMode); break;
-                }
-                
-                switch(status.nSystemState)
-                {
-                    case SYSTEM_STATE_DAY: printf("nSystemState\tDAY\n"); break;
-                    case SYSTEM_STATE_BYPASS: printf("nSystemState\tBYPASS\n"); break;
-                    case SYSTEM_STATE_NIGHT: printf("nSystemState\tNIGHT\n"); break;
-                    default: printf("nSystemState\tGOD KNOWS! (%d)\n", status.nSystemState); break;
-                }
-                
-                if(status.nInverterState >= 0 && status.nInverterState < INVERTER_STATE_COUNT)
-                    printf("nInverterState\t%s\n", GwInverterStatusStrings[status.nInverterState]);
-                else
-                    printf("nInverterState\t UNKNOWN (%d)\n", status.nInverterState);
-                
-                printf("\n");
-                printf("slModeWriteTime\t%d\n", slModeWriteTime);
-                printf("The actual time\t%ld\n", time(NULL));
-                printf("slSwitchTime\t%d\n", status.slSwitchTime);
-                
-                printf("\n");
-                printf("nModbusFPS\t%d\n", status.nModbusFPS);
-                printf("nOutputWatts\t%d\n", status.nOutputWatts);
-                printf("nOutputApppwr\t%d\n", status.nOutputApppwr);
-                printf("nAcChargeWattsH\t%d\n", status.nAcChargeWattsH);
-                printf("nAcChargeWattsL\t%d\n", status.nAcChargeWattsL);
-                printf("nBatteryVolts\t%d\n", status.nBatteryVolts);
-                printf("nBusVolts\t%d\n", status.nBusVolts);
-                printf("nGridVolts\t%d\n", status.nGridVolts);
-                printf("nGridFreq\t%d\n", status.nGridFreq);
-                printf("nAcOutVolts\t%d\n", status.nAcOutVolts);
-                printf("nAcOutFreq\t%d\n", status.nAcOutFreq);
-                printf("nDcOutVolts\t%d\n", status.nDcOutVolts);
-                printf("nInverterTemp\t%d\n", status.nInverterTemp);
-                printf("nDCDCTemp\t%d\n", status.nDCDCTemp);
-                printf("nLoadPercent\t%d\n", status.nLoadPercent);
-                printf("nBattPortVolts\t%d\n", status.nBattPortVolts);
-                printf("nBattBusVolts\t%d\n", status.nBattBusVolts);
-                printf("nBuck1Temp\t%d\n", status.nBuck1Temp);
-                printf("nBuck2Temp\t%d\n", status.nBuck2Temp);
-                printf("nOutputAmps\t%d\n", status.nOutputAmps);
-                printf("nInverterAmps\t%d\n", status.nInverterAmps);
-                printf("nAcInputWattsH\t%d\n", status.nAcInputWattsH);
-                printf("nAcInputWattsL\t%d\n", status.nAcInputWattsL);
-                printf("nAcchgegyToday\t%d\n", status.nAcchgegyToday);
-                printf("nBattuseToday\t%d\n", status.nBattuseToday);
-                printf("nAcUseToday\t%d\n", status.nAcUseToday);
-                printf("nAcBattchgAmps\t%d\n", status.nAcBattchgAmps);
-                printf("nAcUseWatts\t%d\n", status.nAcUseWatts);
-                printf("nBattuseWatts\t%d\n", status.nBattuseWatts);
-                printf("nBattWatts\t%d\n", status.nBattWatts);
-                printf("nMpptFanspeed\t%d\n", status.nMpptFanspeed);
-                printf("nInvFanspeed\t%d\n", status.nInvFanspeed);
-                printf("--------------------\n");
-            }
-            break;
-            
-            case 'g':
-            {
-                printf("Forcing grid...\n");
-                bManualSwitchToGrid = true;
-            }
-            break;
-            
-            case 'b':
-            {
-                printf("Forcing batteries...\n");
-                bManualSwitchToBatts = true;
-            }
-            break;
+                    case 'q':
+                    {
+                        bRunning = false;
+                        modbusState = DEINIT;
+                    }
+                    break;
 
-            default:
-            {
-                printf("---=== %c unknown - available Commands ===---\n", input);
-                printf("q - Quit\n");
-                printf("s - Print latest status\n");
-                printf("g - Manual grid mode\n");
-                printf("b - Manual battery mode\n");
-                printf("--------------------------------\n");
-                break;
+                    case 's':
+                    {
+                        printf("---=== Status ===---\n");
+                        switch(nInverterMode)
+                        {
+                            case GW_CFG_MODE_BATTS: printf("nInverterMode\tBATTERIES\n"); break;
+                            case GW_CFG_MODE_GRID: printf("nInverterMode\tGRID\n"); break;
+                            default: printf("nInverterMode\tGOD KNOWS! (%d)\n", nInverterMode); break;
+                        }
+                        
+                        switch(status.nSystemState)
+                        {
+                            case SYSTEM_STATE_DAY: printf("nSystemState\tDAY\n"); break;
+                            case SYSTEM_STATE_BYPASS: printf("nSystemState\tBYPASS\n"); break;
+                            case SYSTEM_STATE_NIGHT: printf("nSystemState\tNIGHT\n"); break;
+                            default: printf("nSystemState\tGOD KNOWS! (%d)\n", status.nSystemState); break;
+                        }
+                        
+                        if(status.nInverterState >= 0 && status.nInverterState < INVERTER_STATE_COUNT)
+                            printf("nInverterState\t%s\n", GwInverterStatusStrings[status.nInverterState]);
+                        else
+                            printf("nInverterState\t UNKNOWN (%d)\n", status.nInverterState);
+                        
+                        printf("\n");
+                        printf("slModeWriteTime\t%d\n", slModeWriteTime);
+                        printf("The actual time\t%ld\n", time(NULL));
+                        printf("slSwitchTime\t%d\n", status.slSwitchTime);
+                        
+                        printf("\n");
+                        printf("nModbusFPS\t%d\n", status.nModbusFPS);
+                        printf("nOutputWatts\t%d\n", status.nOutputWatts);
+                        printf("nOutputApppwr\t%d\n", status.nOutputApppwr);
+                        printf("nAcChargeWattsH\t%d\n", status.nAcChargeWattsH);
+                        printf("nAcChargeWattsL\t%d\n", status.nAcChargeWattsL);
+                        printf("nBatteryVolts\t%d\n", status.nBatteryVolts);
+                        printf("nBusVolts\t%d\n", status.nBusVolts);
+                        printf("nGridVolts\t%d\n", status.nGridVolts);
+                        printf("nGridFreq\t%d\n", status.nGridFreq);
+                        printf("nAcOutVolts\t%d\n", status.nAcOutVolts);
+                        printf("nAcOutFreq\t%d\n", status.nAcOutFreq);
+                        printf("nDcOutVolts\t%d\n", status.nDcOutVolts);
+                        printf("nInverterTemp\t%d\n", status.nInverterTemp);
+                        printf("nDCDCTemp\t%d\n", status.nDCDCTemp);
+                        printf("nLoadPercent\t%d\n", status.nLoadPercent);
+                        printf("nBattPortVolts\t%d\n", status.nBattPortVolts);
+                        printf("nBattBusVolts\t%d\n", status.nBattBusVolts);
+                        printf("nBuck1Temp\t%d\n", status.nBuck1Temp);
+                        printf("nBuck2Temp\t%d\n", status.nBuck2Temp);
+                        printf("nOutputAmps\t%d\n", status.nOutputAmps);
+                        printf("nInverterAmps\t%d\n", status.nInverterAmps);
+                        printf("nAcInputWattsH\t%d\n", status.nAcInputWattsH);
+                        printf("nAcInputWattsL\t%d\n", status.nAcInputWattsL);
+                        printf("nAcchgegyToday\t%d\n", status.nAcchgegyToday);
+                        printf("nBattuseToday\t%d\n", status.nBattuseToday);
+                        printf("nAcUseToday\t%d\n", status.nAcUseToday);
+                        printf("nAcBattchgAmps\t%d\n", status.nAcBattchgAmps);
+                        printf("nAcUseWatts\t%d\n", status.nAcUseWatts);
+                        printf("nBattuseWatts\t%d\n", status.nBattuseWatts);
+                        printf("nBattWatts\t%d\n", status.nBattWatts);
+                        printf("nMpptFanspeed\t%d\n", status.nMpptFanspeed);
+                        printf("nInvFanspeed\t%d\n", status.nInvFanspeed);
+                        printf("--------------------\n");
+                    }
+                    break;
+                    
+                    case 'g':
+                    {
+                        printf("Forcing grid...\n");
+                        bManualSwitchToGrid = true;
+                    }
+                    break;
+                    
+                    case 'b':
+                    {
+                        printf("Forcing batteries...\n");
+                        bManualSwitchToBatts = true;
+                    }
+                    break;
+
+                    default:
+                    {
+                        printf("---=== %c unknown - available Commands ===---\n", input);
+                        printf("q - Quit\n");
+                        printf("s - Print latest status\n");
+                        printf("g - Manual grid mode\n");
+                        printf("b - Manual battery mode\n");
+                        printf("--------------------------------\n");
+                        break;
+                    }
+                }
             }
         }
+        else
+        {
+            printf("Error creating TCP server.\n");
+        }
+    }
+    else
+    {
+        printf("Error creating modbus thread.\n");
     }
     
     printf("Waiting for threads to finish...\n");
     pthread_join(thread_modbus, NULL);
     printf("...MODBUS done...\n");
-    printf("Done.\n");
+    tcpserver_deinit();
+    printf("...TCP done. That's it.\n");
     return 0;
 }
 
