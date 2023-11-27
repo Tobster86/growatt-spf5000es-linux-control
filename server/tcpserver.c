@@ -117,7 +117,6 @@ static void *handle_client(void *arg)
         else
         {
             Comms_Receive(&sdcComms, buffer, bytes_received);
-            printf("Received %u bytes from client.\n", bytes_received);
         }
     }
     
