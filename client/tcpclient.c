@@ -34,7 +34,7 @@ void transmit_callback(struct sdfComms* psdcComms, uint8_t* pcData, uint16_t nLe
         printf("Sending some command data...\n");
         
         //Ignore errors - let the receive thread handle problems with the socket.
-        send(psdcComms->lID, pcData, nLength, 0);
+        send(client_socket, pcData, nLength, 0);
     }
 }
 
@@ -144,6 +144,13 @@ void *handle_client(void *arg)
                 if (bytes_received == -1)
                 {
                     printf("Error receiving data from the server\n");
+                    close(client_socket);
+                    Comms_Deinit(&sdcComms);
+                    clientState = INIT;
+                }
+                else if(bytes_received == 0)
+                {
+                    printf("Client closed the socket.\n");
                     close(client_socket);
                     Comms_Deinit(&sdcComms);
                     clientState = INIT;
