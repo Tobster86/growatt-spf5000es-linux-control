@@ -148,7 +148,7 @@ void *handle_client(void *arg)
                     Comms_Deinit(&sdcComms);
                     clientState = INIT;
                 }
-                else if(bytes_received == 0)
+                else if(0 == bytes_received)
                 {
                     printf("Client closed the socket.\n");
                     close(client_socket);
