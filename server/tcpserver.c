@@ -106,7 +106,12 @@ static void *handle_client(void *arg)
         int bytes_received = recv(client_socket, buffer, sizeof(buffer), 0);
         if (bytes_received < 0)
         {
-            printf("Client socket is dead\n");
+            printf("Client socket is dead.\n");
+            bClientRunning = false;
+        }
+        else if(0 == bytes_received)
+        {
+            printf("Client closed the socket.\n");
             bClientRunning = false;
         }
         else

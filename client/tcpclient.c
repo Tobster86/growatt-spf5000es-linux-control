@@ -141,7 +141,7 @@ void *handle_client(void *arg)
                 // Receive and print the server's response
                 uint8_t buffer[1024];
                 ssize_t bytes_received = recv(client_socket, buffer, sizeof(buffer), 0);
-                if (bytes_received == -1)
+                if (bytes_received < 0)
                 {
                     printf("Error receiving data from the server\n");
                     close(client_socket);
@@ -150,7 +150,7 @@ void *handle_client(void *arg)
                 }
                 else if(0 == bytes_received)
                 {
-                    printf("Client closed the socket.\n");
+                    printf("Server closed the socket.\n");
                     close(client_socket);
                     Comms_Deinit(&sdcComms);
                     clientState = INIT;
