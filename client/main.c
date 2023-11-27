@@ -4,18 +4,59 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdbool.h>
+#include <pthread.h>
+#include <unistd.h>
 
+#include "system_defs.h"
+#include "comms_defs.h"
+#include "tcpclient.h"
 
+struct SystemStatus status;
+
+void ReceiveStatus(uint8_t* pStatus, uint32_t lLength)
+{
+    printf("Received status.\n");
+        
+    memcpy(&status, pStatus, lLength);
+}
 
 int main(int argc, char* argv[])
 {
-    if (SDL_Init(SDL_INIT_VIDEO) < 0)
+    if(!tcpclient_init())
+    {
+        printf("Failed to create TCP client. Exiting.\n");
+    
+        return -1;
+    }
+
+    while(true)
+    {
+        if(tcpclient_GetConnected())
+        {
+            printf("Sending a command...\n");
+            tcpclient_SendCommand(COMMAND_REQUEST_STATUS);
+        }
+        else
+        {
+            printf("Not sending a command as we're not connected.\n");
+        }
+        
+        sleep(1);
+    }
+
+
+    /*if (SDL_Init(SDL_INIT_VIDEO) < 0)
     {
         printf("SDL initialization failed: %s\n", SDL_GetError());
         return 1;
     }
 
-    SDL_Window* window = SDL_CreateWindow("Changing Background Color", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    SDL_Window* window = SDL_CreateWindow("Changing Background Color",
+                                          SDL_WINDOWPOS_UNDEFINED,
+                                          SDL_WINDOWPOS_UNDEFINED,
+                                          0,
+                                          0,
+                                          SDL_WINDOW_FULLSCREEN_DESKTOP);
     if (!window)
     {
         printf("Window creation failed: %s\n", SDL_GetError());
@@ -72,7 +113,7 @@ int main(int argc, char* argv[])
 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
-    SDL_Quit();
+    SDL_Quit();*/
 
     return 0;
 }

@@ -1,15 +1,15 @@
 
-#include "tcpserver.h"
-#include "comms_protocol.h"
-#include "comms_defs.h"
-#include "system_defs.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+
+#include "tcpserver.h"
+#include "comms_protocol.h"
+#include "comms_defs.h"
+#include "system_defs.h"
 
 #define PORT 20069
 #define MAX_CLIENTS 5
@@ -28,7 +28,7 @@ void transmit_callback(struct sdfComms* psdcComms, uint8_t* pcData, uint16_t nLe
 
 void objectReceived_callback(struct sdfComms* psdcComms, uint16_t nObjectID, uint16_t nLength, uint8_t* pcData)
 {
-    printf("Client socket %u sent us object ID %u something unexpectedly.", psdcComms->lID, nObjectID);
+    printf("Client socket %u sent us object ID %u unexpectedly.\n", psdcComms->lID, nObjectID);
 }
 
 void commandReceived_callback(struct sdfComms* psdcComms, uint16_t nCommandID)
@@ -44,7 +44,7 @@ void commandReceived_callback(struct sdfComms* psdcComms, uint16_t nCommandID)
         }
         break;
     
-        default: printf("Client socket %u send unknown command %u.", psdcComms->lID, nCommandID);
+        default: printf("Client socket %u sent unknown command %u.\n", psdcComms->lID, nCommandID);
     }
 }
 
@@ -58,7 +58,7 @@ bool lengthCheck_callback(struct sdfComms* psdcComms, uint16_t nObjectID, uint16
         }
         break;
     
-        default: printf("Client socket %u requested length check for unknown object %u.", psdcComms->lID, nObjectID);
+        default: printf("Client socket %u requested length check for unknown object %u.\n", psdcComms->lID, nObjectID);
     }
     
     return false;
@@ -68,9 +68,9 @@ void error_callback(struct sdfComms* psdcComms, uint8_t cErrorCode)
 {
     switch(cErrorCode)
     {
-        case COMMS_ERROR_MESSAGE_TYPE_INVALID: printf("Client socket %u comms threw error TYPE_INVALID.", psdcComms->lID); break;
-        case COMMS_ERROR_LENGTH_INVALID: printf("Client socket %u comms threw error LENGTH_INVALID.", psdcComms->lID); break;
-        default: printf("Client socket %u comms threw an unknown error code.", psdcComms->lID);
+        case COMMS_ERROR_MESSAGE_TYPE_INVALID: printf("Client socket %u comms threw error TYPE_INVALID.\n", psdcComms->lID); break;
+        case COMMS_ERROR_LENGTH_INVALID: printf("Client socket %u comms threw error LENGTH_INVALID.\n", psdcComms->lID); break;
+        default: printf("Client socket %u comms threw an unknown error code.\n", psdcComms->lID);
     }
 }
 
@@ -112,10 +112,7 @@ static void *handle_client(void *arg)
         else
         {
             Comms_Receive(&sdcComms, buffer, bytes_received);
-            
-            /*printf("Received data from client: %s\n", buffer);
-            send(client_socket, buffer, bytes_received, 0);
-            send(client_socket, "lol", 3, 0);*/
+            printf("Received %u bytes from client.\n", bytes_received);
         }
     }
     

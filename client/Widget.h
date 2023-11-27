@@ -3,10 +3,12 @@
 #define WIDGET_C
 
 #include <SDL2/SDL.h>
-#include "GaugeWidget.h"
 
-typedef void (*Update)(struct sdfWidget* pWidget, SDL_Renderer* pRenderer);
-typedef void (*ScreenChanged)(struct sdfWidget* pWidget);
+struct sdfWidget;
+struct sdfGaugeWidget;
+
+typedef void (*Update)(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer);
+typedef void (*ScreenChanged)(struct sdfWidget* psdcWidget);
 
 struct sdfWidget
 {
@@ -27,11 +29,11 @@ struct sdfWidget
     
     union
     {
-        struct sdfGaugeWidget gaugeWidget;
+        struct sdfGaugeWidget* psdcGaugeWidget;
     };
 };
 
-void Widget_Initialise(struct sdfWidget* pWidget,
+void Widget_Initialise(struct sdfWidget* psdcWidget,
                        float fltXOffset,
                        float fltYOffset,
                        float fltWidth,
@@ -39,6 +41,6 @@ void Widget_Initialise(struct sdfWidget* pWidget,
                        Update update,
                        ScreenChanged screenChanged);
                        
-void Widget_ScreenChanged(struct sdfWidget* pWidget, int lWidth, int lHeight);
+void Widget_ScreenChanged(struct sdfWidget* psdcWidget, int lWidth, int lHeight);
 
 #endif

@@ -2,8 +2,7 @@
 CC = gcc
 
 # Source files
-SRC = $(wildcard *.c)
-#SRC = $(wildcard *.c) ../common/*.c
+SRC = $(wildcard *.c) ../common/*.c
 
 # Output binary name
 TARGET = client

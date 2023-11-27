@@ -11,7 +11,7 @@ struct sdfGaugeWidget
     float fltMax;
 };
 
-void GaugeWidget_Update(struct sdfWidget* pWidget, SDL_Renderer* pRenderer);
+void GaugeWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer);
 
 #endif
 
