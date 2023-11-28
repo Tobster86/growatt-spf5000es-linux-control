@@ -10,8 +10,19 @@
 #include "system_defs.h"
 #include "comms_defs.h"
 #include "tcpclient.h"
+#include "Widget.h"
+#include "GaugeWidget.h"
 
 struct SystemStatus status;
+
+struct sdfWidget sdcWidgetPowerGauge;
+
+struct sdfWidget* Widgets[] =
+{
+    &sdcWidgetPowerGauge
+};
+
+int widgetCount;
 
 void ReceiveStatus(uint8_t* pStatus, uint32_t lLength)
 {
@@ -20,9 +31,27 @@ void ReceiveStatus(uint8_t* pStatus, uint32_t lLength)
     memcpy(&status, pStatus, lLength);
 }
 
+void WindowSizeChanged(int newWidth, int newHeight)
+{
+    for(int i = 0; i < widgetCount; i++)
+    {
+        Widget_ScreenChanged(Widgets[i], newWidth, newHeight);
+    }
+}
+
 int main(int argc, char* argv[])
 {
-    if(!tcpclient_init())
+    widgetCount = sizeof(Widgets)/sizeof(struct sdfWidget*);
+    
+    GaugeWidget_Initialise(&sdcWidgetPowerGauge,
+                           0.0f,
+                           0.0f,
+                           0.3f,
+                           1.0f,
+                           5000.0f,
+                           0.0f);
+    
+    /*if(!tcpclient_init())
     {
         printf("Failed to create TCP client. Exiting.\n");
     
@@ -42,10 +71,10 @@ int main(int argc, char* argv[])
         }
         
         sleep(1);
-    }
+    }*/
 
 
-    /*if (SDL_Init(SDL_INIT_VIDEO) < 0)
+    if (SDL_Init(SDL_INIT_VIDEO) < 0)
     {
         printf("SDL initialization failed: %s\n", SDL_GetError());
         return 1;
@@ -77,16 +106,38 @@ int main(int argc, char* argv[])
     bool quit = false;
     SDL_Event e;
 
-    Uint32 lastColorChange = 0;
-    Uint32 colorChangeInterval = 1000;  // Change color every 1000 milliseconds (1 second)
-
     while (!quit)
     {
         while (SDL_PollEvent(&e) != 0)
         {
+            switch(e.type)
+            {
+                case SDL_QUIT:
+                {
+                    quit = true;
+                }
+                break;
+                
+                case SDL_KEYDOWN:
+                {
+                    if (e.key.keysym.sym == SDLK_ESCAPE)
+                    {
+                        quit = true;
+                    }
+                }
+                break;
+                
+                case SDL_WINDOWEVENT:
+                {
+                    if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+                    {
+                        WindowSizeChanged(e.window.data1, e.window.data2);
+                    }
+                }
+            }
+        
             if (e.type == SDL_QUIT)
             {
-                quit = true;
             }
             else if (e.type == SDL_KEYDOWN)
             {
@@ -96,24 +147,23 @@ int main(int argc, char* argv[])
                 }
             }
         }
-
-        // Check if it's time to change the background color
-        Uint32 currentTime = SDL_GetTicks();
-        if (currentTime - lastColorChange >= colorChangeInterval)
+        
+        //Render.
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+        
+        for(int i = 0; i < widgetCount; i++)
         {
-            // Generate a new random background color
-            SDL_SetRenderDrawColor(renderer, rand() % 256, rand() % 256, rand() % 256, 255);
-            SDL_RenderClear(renderer);
-            SDL_RenderPresent(renderer);
-
-            // Update the last color change time
-            lastColorChange = currentTime;
+            Widget_Update(Widgets[i], renderer);
         }
+        
+        SDL_RenderPresent(renderer);
+        SDL_Delay(1);
     }
 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
-    SDL_Quit();*/
+    SDL_Quit();
 
     return 0;
 }

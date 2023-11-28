@@ -1,6 +1,6 @@
 
 #ifndef WIDGET_H
-#define WIDGET_C
+#define WIDGET_H
 
 #include <SDL2/SDL.h>
 
@@ -40,6 +40,8 @@ void Widget_Initialise(struct sdfWidget* psdcWidget,
                        float fltHeight,
                        Update update,
                        ScreenChanged screenChanged);
+                       
+void Widget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer);
                        
 void Widget_ScreenChanged(struct sdfWidget* psdcWidget, int lWidth, int lHeight);
 

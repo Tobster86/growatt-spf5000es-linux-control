@@ -11,7 +11,17 @@ struct sdfGaugeWidget
     float fltMax;
 };
 
+void GaugeWidget_Initialise(struct sdfWidget* psdcWidget,
+                            float fltXOffset,
+                            float fltYOffset,
+                            float fltWidth,
+                            float fltHeight,
+                            float fltMin,
+                            float fltMax);
+
 void GaugeWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer);
+
+void GaugeWidget_ScreenChanged(struct sdfWidget* psdcWidget);
 
 #endif
 

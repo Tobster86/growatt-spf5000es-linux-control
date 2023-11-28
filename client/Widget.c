@@ -18,6 +18,11 @@ void Widget_Initialise(struct sdfWidget* psdcWidget,
     psdcWidget->screenChanged = screenChanged;
 }
 
+void Widget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer)
+{
+    psdcWidget->update(psdcWidget, pRenderer);
+}
+
 void Widget_ScreenChanged(struct sdfWidget* psdcWidget, int lWidth, int lHeight)
 {
     psdcWidget->lXPos = (uint32_t)((psdcWidget->fltXOffset * (float)lWidth) + 0.5f);
@@ -27,4 +32,5 @@ void Widget_ScreenChanged(struct sdfWidget* psdcWidget, int lWidth, int lHeight)
     
     psdcWidget->screenChanged(psdcWidget);
 }
+
 
