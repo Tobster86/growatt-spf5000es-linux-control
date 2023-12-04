@@ -60,12 +60,10 @@ void GaugeWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer)
     
     float fltAng = psdcWidget->psdcGaugeWidget->fltMinAng;
     
-    printf("Rendering...");
+    printf("Rendering...\n");
         
     while(fltAng <= psdcWidget->psdcGaugeWidget->fltMaxAng)
     {
-        printf("cosf(fltAng): %.2f\n", cosf(fltAng));
-    
         if(fltAng >= fltWarnAng)
             SDL_SetRenderDrawColor(pRenderer, colMinWarn.r, colMinWarn.g, colMinWarn.b, colMinWarn.a);
     
@@ -109,6 +107,12 @@ void GaugeWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer)
                        lYOrigin,
                        lXOrigin + (uint32_t)(((fltNeedleLength) * cosf(fltValAng)) + 0.5f),
                        lYOrigin + (uint32_t)(((fltNeedleLength) * sinf(fltValAng)) + 0.5f));
+                       
+    printf("X1: %d\nY1: %d\nX2: %d\nY2: %d\n",
+           lXOrigin,
+           lYOrigin,
+           lXOrigin + (uint32_t)(((fltNeedleLength) * cosf(fltValAng)) + 0.5f),
+           lYOrigin + (uint32_t)(((fltNeedleLength) * sinf(fltValAng)) + 0.5f));
 }
 
 void GaugeWidget_ScreenChanged(struct sdfWidget* psdcWidget)
