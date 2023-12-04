@@ -101,29 +101,21 @@ void GaugeWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer)
                         (psdcWidget->psdcGaugeWidget->fltMax - psdcWidget->psdcGaugeWidget->fltMin)) *
                         (float)*psdcWidget->psdcGaugeWidget->plValue);
 
-    printf("fltNeedleLength: %f\n", fltNeedleLength);
-    printf("fltMinorPipLength: %f\n", fltMinorPipLength);
-    printf("fltMajorPipLength: %f\n", fltMajorPipLength);
-    printf("lXOrigin: %u\n", lXOrigin);
-    printf("lYOrigin: %u\n", lYOrigin);
-    printf("fltMinIncAng: %f\n", fltMinIncAng);
-    printf("fltMajIncAng: %f\n", fltMajIncAng);
-    printf("fltWarnAng: %f\n", fltWarnAng);
-    printf("fltValAng: %f\n", fltValAng);
-
     SDL_SetRenderDrawColor(pRenderer, colNeedle.r, colNeedle.g, colNeedle.b, colNeedle.a);
+    
+    printf("lXOrigin: %d\n", lXOrigin);
+    printf("fltNeedleLength: %.2f\n", fltNeedleLength);
+    printf("fltValAng: %.2f\n", fltValAng);
+    printf("cosf(fltValAng): %.2f\n", cosf(fltValAng));
+    printf("(((fltNeedleLength) * cosf(fltValAng)) + 0.5f): %.2f\n", (((fltNeedleLength) * cosf(fltValAng)) + 0.5f));
+    printf("(uint32_t)(((fltNeedleLength) * cosf(fltValAng)) + 0.5f): %d\n", (uint32_t)(((fltNeedleLength) * cosf(fltValAng)) + 0.5f));
+    printf("lXOrigin + (uint32_t)(((fltNeedleLength) * cosf(fltValAng)) + 0.5f): %d\n", lXOrigin + (uint32_t)(((fltNeedleLength) * cosf(fltValAng)) + 0.5f));
                        
     SDL_RenderDrawLine(pRenderer,
                        lXOrigin,
                        lYOrigin,
                        lXOrigin + (uint32_t)(((fltNeedleLength) * cosf(fltValAng)) + 0.5f),
                        lYOrigin + (uint32_t)(((fltNeedleLength) * sinf(fltValAng)) + 0.5f));
-                       
-    printf("X1: %d\nY1: %d\nX2: %d\nY2: %d\n",
-           lXOrigin,
-           lYOrigin,
-           lXOrigin + (uint32_t)(((fltNeedleLength) * cosf(fltValAng)) + 0.5f),
-           lYOrigin + (uint32_t)(((fltNeedleLength) * sinf(fltValAng)) + 0.5f));
 }
 
 void GaugeWidget_ScreenChanged(struct sdfWidget* psdcWidget)
