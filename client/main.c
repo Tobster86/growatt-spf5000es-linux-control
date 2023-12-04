@@ -32,6 +32,7 @@ struct sdfWidget* Widgets[] =
 };
 
 int widgetCount;
+bool bRender = true;
 
 /* System logic */
 pthread_t processingThread;
@@ -61,6 +62,8 @@ void ReceiveStatus(uint8_t* pStatus, uint32_t lLength)
     lBatteryPercent = (uint32_t)((((BATT_CAPACITY_100WH - (float)status.nBattuseToday) / BATT_CAPACITY_100WH) * 100.0f) + 0.5f);
     
     lLoadPercent = status.nLoadPercent;
+    
+    bRender = true;
 }
 
 void WindowSizeChanged(int newWidth, int newHeight)
@@ -197,17 +200,22 @@ int main(int argc, char* argv[])
             }
         }
         
-        //Render.
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-        SDL_RenderClear(renderer);
-        
-        for(int i = 0; i < widgetCount; i++)
+        if(bRender)
         {
-            Widget_Update(Widgets[i], renderer);
+            bRender = false;
+            
+            //Render.
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+            SDL_RenderClear(renderer);
+            
+            for(int i = 0; i < widgetCount; i++)
+            {
+                Widget_Update(Widgets[i], renderer);
+            }
+            
+            SDL_RenderPresent(renderer);
+            SDL_Delay(1);
         }
-        
-        SDL_RenderPresent(renderer);
-        SDL_Delay(1);
     }
 
     SDL_DestroyRenderer(renderer);
