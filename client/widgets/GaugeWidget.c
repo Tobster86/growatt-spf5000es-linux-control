@@ -35,13 +35,11 @@ void GaugeWidget_Initialise(struct sdfWidget* psdcWidget,
 
 void GaugeWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer)
 {
-    printf("Rendering...\n");
-    
     float fltNeedleLength = fmin(psdcWidget->lWidth, psdcWidget->lHeight) * 0.4f;
     float fltMinorPipLength = fltNeedleLength * 0.05f;
     float fltMajorPipLength = fltNeedleLength * 0.1f;
-    uint32_t lXOrigin = psdcWidget->lXPos + (psdcWidget->lWidth / 2);
-    uint32_t lYOrigin = psdcWidget->lYPos + (psdcWidget->lHeight / 2);
+    int32_t lXOrigin = psdcWidget->lXPos + (psdcWidget->lWidth / 2);
+    int32_t lYOrigin = psdcWidget->lYPos + (psdcWidget->lHeight / 2);
     
     float fltMinIncAng = ((psdcWidget->psdcGaugeWidget->fltMaxAng - psdcWidget->psdcGaugeWidget->fltMinAng) /
                          (psdcWidget->psdcGaugeWidget->fltMax - psdcWidget->psdcGaugeWidget->fltMin)) *
@@ -69,10 +67,10 @@ void GaugeWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer)
             SDL_SetRenderDrawColor(pRenderer, colMinWarn.r, colMinWarn.g, colMinWarn.b, colMinWarn.a);
     
         SDL_RenderDrawLine(pRenderer,
-                           lXOrigin + (uint32_t)(((fltNeedleLength - fltMinorPipLength) * cosf(fltAng)) + 0.5f),
-                           lYOrigin + (uint32_t)(((fltNeedleLength - fltMinorPipLength) * sinf(fltAng)) + 0.5f),
-                           lXOrigin + (uint32_t)(((fltNeedleLength) * cosf(fltAng)) + 0.5f),
-                           lYOrigin + (uint32_t)(((fltNeedleLength) * sinf(fltAng)) + 0.5f));
+                           lXOrigin + (int32_t)(((fltNeedleLength - fltMinorPipLength) * cosf(fltAng)) + 0.5f),
+                           lYOrigin + (int32_t)(((fltNeedleLength - fltMinorPipLength) * sinf(fltAng)) + 0.5f),
+                           lXOrigin + (int32_t)(((fltNeedleLength) * cosf(fltAng)) + 0.5f),
+                           lYOrigin + (int32_t)(((fltNeedleLength) * sinf(fltAng)) + 0.5f));
                            
         fltAng += fltMinIncAng;
     }
@@ -87,10 +85,10 @@ void GaugeWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer)
             SDL_SetRenderDrawColor(pRenderer, colMajWarn.r, colMajWarn.g, colMajWarn.b, colMajWarn.a);
             
         SDL_RenderDrawLine(pRenderer,
-                           lXOrigin + (uint32_t)(((fltNeedleLength - fltMajorPipLength) * cosf(fltAng)) + 0.5f),
-                           lYOrigin + (uint32_t)(((fltNeedleLength - fltMajorPipLength) * sinf(fltAng)) + 0.5f),
-                           lXOrigin + (uint32_t)(((fltNeedleLength) * cosf(fltAng)) + 0.5f),
-                           lYOrigin + (uint32_t)(((fltNeedleLength) * sinf(fltAng)) + 0.5f));
+                           lXOrigin + (int32_t)(((fltNeedleLength - fltMajorPipLength) * cosf(fltAng)) + 0.5f),
+                           lYOrigin + (int32_t)(((fltNeedleLength - fltMajorPipLength) * sinf(fltAng)) + 0.5f),
+                           lXOrigin + (int32_t)(((fltNeedleLength) * cosf(fltAng)) + 0.5f),
+                           lYOrigin + (int32_t)(((fltNeedleLength) * sinf(fltAng)) + 0.5f));
                            
         fltAng += fltMajIncAng;
     }
@@ -102,20 +100,12 @@ void GaugeWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer)
                         (float)*psdcWidget->psdcGaugeWidget->plValue);
 
     SDL_SetRenderDrawColor(pRenderer, colNeedle.r, colNeedle.g, colNeedle.b, colNeedle.a);
-    
-    printf("lXOrigin: %d\n", lXOrigin);
-    printf("fltNeedleLength: %.2f\n", fltNeedleLength);
-    printf("fltValAng: %.2f\n", fltValAng);
-    printf("cosf(fltValAng): %.2f\n", cosf(fltValAng));
-    printf("(((fltNeedleLength) * cosf(fltValAng)) + 0.5f): %.2f\n", (((fltNeedleLength) * cosf(fltValAng)) + 0.5f));
-    printf("(uint32_t)(((fltNeedleLength) * cosf(fltValAng)) + 0.5f): %d\n", (uint32_t)(((fltNeedleLength) * cosf(fltValAng)) + 0.5f));
-    printf("lXOrigin + (uint32_t)(((fltNeedleLength) * cosf(fltValAng)) + 0.5f): %d\n", lXOrigin + (uint32_t)(((fltNeedleLength) * cosf(fltValAng)) + 0.5f));
                        
     SDL_RenderDrawLine(pRenderer,
                        lXOrigin,
                        lYOrigin,
-                       lXOrigin + (uint32_t)(((fltNeedleLength) * cosf(fltValAng)) + 0.5f),
-                       lYOrigin + (uint32_t)(((fltNeedleLength) * sinf(fltValAng)) + 0.5f));
+                       lXOrigin + (int32_t)(((fltNeedleLength) * cosf(fltValAng)) + 0.5f),
+                       lYOrigin + (int32_t)(((fltNeedleLength) * sinf(fltValAng)) + 0.5f));
 }
 
 void GaugeWidget_ScreenChanged(struct sdfWidget* psdcWidget)
