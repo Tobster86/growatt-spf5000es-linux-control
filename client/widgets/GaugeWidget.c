@@ -56,17 +56,6 @@ void GaugeWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer)
                        (((psdcWidget->psdcGaugeWidget->fltMaxAng - psdcWidget->psdcGaugeWidget->fltMinAng) /
                          (psdcWidget->psdcGaugeWidget->fltMax - psdcWidget->psdcGaugeWidget->fltMin)) *
                           psdcWidget->psdcGaugeWidget->fltWarn);
-    
-    printf("fltNeedleLength: %f\n", fltNeedleLength);
-    printf("fltMinorPipLength: %f\n", fltMinorPipLength);
-    printf("fltMajorPipLength: %f\n", fltMajorPipLength);
-    printf("lXOrigin: %u\n", lXOrigin);
-    printf("lYOrigin: %u\n", lYOrigin);
-
-    printf("fltMinIncAng: %f\n", fltMinIncAng);
-    printf("fltMajIncAng: %f\n", fltMajIncAng);
-
-    printf("fltWarnAng: %f\n", fltWarnAng);
 
     
     //Draw minor increments.
@@ -111,7 +100,17 @@ void GaugeWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer)
                       (((psdcWidget->psdcGaugeWidget->fltMaxAng - psdcWidget->psdcGaugeWidget->fltMinAng) /
                         (psdcWidget->psdcGaugeWidget->fltMax - psdcWidget->psdcGaugeWidget->fltMin)) *
                         (float)*psdcWidget->psdcGaugeWidget->plValue);
-                       
+
+    printf("fltNeedleLength: %f\n", fltNeedleLength);
+    printf("fltMinorPipLength: %f\n", fltMinorPipLength);
+    printf("fltMajorPipLength: %f\n", fltMajorPipLength);
+    printf("lXOrigin: %u\n", lXOrigin);
+    printf("lYOrigin: %u\n", lYOrigin);
+    printf("fltMinIncAng: %f\n", fltMinIncAng);
+    printf("fltMajIncAng: %f\n", fltMajIncAng);
+    printf("fltWarnAng: %f\n", fltWarnAng);
+    printf("fltValAng: %f\n", fltValAng);
+
     SDL_SetRenderDrawColor(pRenderer, colNeedle.r, colNeedle.g, colNeedle.b, colNeedle.a);
                        
     SDL_RenderDrawLine(pRenderer,
