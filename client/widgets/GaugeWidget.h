@@ -9,6 +9,12 @@ struct sdfGaugeWidget
 {
     float fltMin;
     float fltMax;
+    float fltMajInc;
+    float fltMinInc;
+    float fltWarn;
+    float fltMinAng;
+    float fltMaxAng;
+    uint32_t* plValue;
 };
 
 void GaugeWidget_Initialise(struct sdfWidget* psdcWidget,
@@ -17,7 +23,13 @@ void GaugeWidget_Initialise(struct sdfWidget* psdcWidget,
                             float fltWidth,
                             float fltHeight,
                             float fltMin,
-                            float fltMax);
+                            float fltMax,
+                            float fltMinInc,
+                            float fltMajInc,
+                            float fltWarn,
+                            float fltMinAng,
+                            float fltMaxAng,
+                            uint32_t* plValue);
 
 void GaugeWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer);
 

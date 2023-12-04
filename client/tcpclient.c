@@ -31,8 +31,6 @@ void transmit_callback(struct sdfComms* psdcComms, uint8_t* pcData, uint16_t nLe
 {
     if(PROCESS == clientState)
     {
-        printf("Sending some command data...\n");
-        
         //Ignore errors - let the receive thread handle problems with the socket.
         send(client_socket, pcData, nLength, 0);
     }
@@ -157,7 +155,6 @@ void *handle_client(void *arg)
                 }
                 else
                 {
-                    printf("Received some data from the server.\n");
                     Comms_Receive(&sdcComms, &buffer[0], bytes_received);
                 }
             }

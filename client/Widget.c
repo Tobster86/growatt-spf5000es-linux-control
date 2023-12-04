@@ -9,7 +9,6 @@ void Widget_Initialise(struct sdfWidget* psdcWidget,
                        Update update,
                        ScreenChanged screenChanged)
 {
-    memset(psdcWidget, 0x00, sizeof(struct sdfWidget));
     psdcWidget->fltXOffset = fltXOffset;
     psdcWidget->fltYOffset = fltYOffset;
     psdcWidget->fltWidth = fltWidth;

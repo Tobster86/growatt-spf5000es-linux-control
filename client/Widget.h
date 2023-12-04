@@ -5,6 +5,7 @@
 #include <SDL2/SDL.h>
 
 struct sdfWidget;
+struct sdfBatteryWidget;
 struct sdfGaugeWidget;
 
 typedef void (*Update)(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer);
@@ -29,7 +30,8 @@ struct sdfWidget
     
     union
     {
-        struct sdfGaugeWidget* psdcGaugeWidget;
+        struct sdfBatteryWidget* psdcBatteryWidget;
+        struct sdfGaugeWidget*   psdcGaugeWidget;
     };
 };
 

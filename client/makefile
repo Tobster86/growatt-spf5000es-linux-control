@@ -2,14 +2,15 @@
 CC = gcc
 
 # Source files
-SRC = $(wildcard *.c) ../common/*.c
+SRC_DIR = ../common
+SRC = $(wildcard *.c) $(wildcard $(SRC_DIR)/*.c) widgets/*.c
 
 # Output binary name
 TARGET = client
 
 # Flags for the compiler and linker
-CFLAGS = -Wall -I../common -I. -pthread -lSDL2  # Update the flags for SDL
-LIBS = -lSDL2 -lcairo  # Update the libraries
+CFLAGS = -Wall -I$(SRC_DIR) -I. -Iwidgets -pthread #-g
+LIBS = -lSDL2 -lcairo -lm
 
 # Compile the program
 $(TARGET): $(SRC)

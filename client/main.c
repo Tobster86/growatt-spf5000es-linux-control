@@ -11,24 +11,56 @@
 #include "comms_defs.h"
 #include "tcpclient.h"
 #include "Widget.h"
+#include "BatteryWidget.h"
 #include "GaugeWidget.h"
 
-struct SystemStatus status;
+#define BATT_CAPACITY_100WH     143.36f
 
+/* System status and variables. */
+struct SystemStatus status;
+uint32_t lBatteryPercent;
+uint32_t lLoadPercent;
+
+/* UI Stuff. */
+struct sdfWidget sdcWidgetBattery;
 struct sdfWidget sdcWidgetPowerGauge;
 
 struct sdfWidget* Widgets[] =
 {
+    &sdcWidgetBattery,
     &sdcWidgetPowerGauge
 };
 
 int widgetCount;
 
+/* System logic */
+pthread_t processingThread;
+bool quit = false;
+
+void *process(void *arg)
+{
+    while(!quit)
+    {
+        if(tcpclient_GetConnected())
+        {
+            tcpclient_SendCommand(COMMAND_REQUEST_STATUS);
+        }
+        
+        sleep(1);
+    }
+    
+    pthread_exit(NULL);
+}
+
+/* Functions. */
 void ReceiveStatus(uint8_t* pStatus, uint32_t lLength)
 {
-    printf("Received status.\n");
-        
     memcpy(&status, pStatus, lLength);
+    
+    //Calculate battery percent.
+    lBatteryPercent = (uint32_t)((((BATT_CAPACITY_100WH - (float)status.nBattuseToday) / BATT_CAPACITY_100WH) * 100.0f) + 0.5f);
+    
+    lLoadPercent = status.nLoadPercent;
 }
 
 void WindowSizeChanged(int newWidth, int newHeight)
@@ -43,49 +75,64 @@ int main(int argc, char* argv[])
 {
     widgetCount = sizeof(Widgets)/sizeof(struct sdfWidget*);
     
+    BatteryWidget_Initialise(&sdcWidgetBattery,
+                             0.01f,
+                             0.01f,
+                             0.15f,
+                             0.99f,
+                             &lBatteryPercent);
+    
     GaugeWidget_Initialise(&sdcWidgetPowerGauge,
+                           0.2f,
+                           0.01f,
+                           0.5f,
+                           0.99f,
                            0.0f,
-                           0.0f,
-                           0.3f,
-                           1.0f,
-                           5000.0f,
-                           0.0f);
+                           1100.0f,
+                           20.0f,
+                           200.0f,
+                           999.0f,
+                           -155.0f * M_PI / 180.0,
+                           -25.0f * M_PI / 180.0,
+                           &lLoadPercent);
     
-    /*if(!tcpclient_init())
+    if(!tcpclient_init())
     {
-        printf("Failed to create TCP client. Exiting.\n");
-    
+        printf("Failed to create TCP client. Exiting.\n");    
         return -1;
     }
-
-    while(true)
-    {
-        if(tcpclient_GetConnected())
-        {
-            printf("Sending a command...\n");
-            tcpclient_SendCommand(COMMAND_REQUEST_STATUS);
-        }
-        else
-        {
-            printf("Not sending a command as we're not connected.\n");
-        }
-        
-        sleep(1);
-    }*/
-
-
+    
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
     {
         printf("SDL initialization failed: %s\n", SDL_GetError());
         return 1;
     }
 
-    SDL_Window* window = SDL_CreateWindow("Changing Background Color",
-                                          SDL_WINDOWPOS_UNDEFINED,
-                                          SDL_WINDOWPOS_UNDEFINED,
-                                          0,
-                                          0,
-                                          SDL_WINDOW_FULLSCREEN_DESKTOP);
+    SDL_Window* window;
+    
+    if(sizeof(void*) == 4)
+    {
+        //On Raspberry Pi. Launch full screen.
+        window = SDL_CreateWindow("Inverter Gubbin",
+                                  SDL_WINDOWPOS_UNDEFINED,
+                                  SDL_WINDOWPOS_UNDEFINED,
+                                  0,
+                                  0,
+                                  SDL_WINDOW_FULLSCREEN_DESKTOP);
+    }
+    else
+    {
+        //On dev machine. Launch a window.
+        window = SDL_CreateWindow("Inverter Gubbin",
+                                  SDL_WINDOWPOS_UNDEFINED,
+                                  SDL_WINDOWPOS_UNDEFINED,
+                                  800,
+                                  480,
+                                  SDL_WINDOW_SHOWN);
+                                  
+        WindowSizeChanged(800, 480);
+    }
+    
     if (!window)
     {
         printf("Window creation failed: %s\n", SDL_GetError());
@@ -99,11 +146,13 @@ int main(int argc, char* argv[])
         SDL_DestroyWindow(window);
         return 1;
     }
+    
+    if(0 != pthread_create(&processingThread, NULL, &process, NULL))
+    {
+        printf("Error creating processing thread\n");
+        return 1;
+    }
 
-    // Seed the random number generator
-    srand(time(NULL));
-
-    bool quit = false;
     SDL_Event e;
 
     while (!quit)
