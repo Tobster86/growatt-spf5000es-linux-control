@@ -10,7 +10,7 @@ TARGET = client
 
 # Flags for the compiler and linker
 CFLAGS = -Wall -I$(SRC_DIR) -I. -Iwidgets -pthread #-g
-LIBS = -lSDL2 -lcairo -lm
+LIBS = -lSDL2 -lSDL2_image -lcairo -lm
 
 # Compile the program
 $(TARGET): $(SRC)
