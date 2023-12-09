@@ -17,7 +17,7 @@
 #define CLIENT_TIMEOUT 30 //Bin clients after this many seconds.
 
 pthread_t serverThread;
-bool bServerRunning = true;
+bool bServerRunning = false;
 
 int server_socket;
 
@@ -160,37 +160,46 @@ void *handle_server(void *arg)
 bool tcpserver_init()
 {
     struct sockaddr_in server_addr;
-
-    // Create socket
-    if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        printf("Error creating socket\n");
-        return false;
-    }
-
-    // Initialize server address
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(PORT);
-    server_addr.sin_addr.s_addr = INADDR_ANY;
-
-    // Bind socket to address
-    if (bind(server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
-        printf("Error binding\n");
-        close(server_socket);
-        return false;
-    }
-
-    // Listen for incoming connections
-    if (listen(server_socket, MAX_CLIENTS) == -1) {
-        printf("Error listening\n");
-        close(server_socket);
-        return false;
-    }
-
-    if(0 != pthread_create(&serverThread, NULL, &handle_server, NULL))
+    
+    while(!bServerRunning)
     {
-        printf("Error creating server thread\n");
-        close(server_socket);
-        return false;
+        // Create socket
+        if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+            printf("Error creating socket\n");
+            sleep(1);
+        }
+        else
+        {
+            // Initialize server address
+            server_addr.sin_family = AF_INET;
+            server_addr.sin_port = htons(PORT);
+            server_addr.sin_addr.s_addr = INADDR_ANY;
+
+            // Bind socket to address
+            if (bind(server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
+                printf("Error binding\n");
+                close(server_socket);
+                sleep(1);
+            }
+            else
+            {
+                // Listen for incoming connections
+                if (listen(server_socket, MAX_CLIENTS) == -1) {
+                    printf("Error listening\n");
+                    close(server_socket);
+                    sleep(1);
+                }
+                else
+                {
+                    if(0 != pthread_create(&serverThread, NULL, &handle_server, NULL))
+                    {
+                        printf("Error creating server thread\n");
+                        close(server_socket);
+                        return false;
+                    }
+                }
+            }
+        }
     }
 
     return true;

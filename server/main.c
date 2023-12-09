@@ -322,10 +322,10 @@ int main()
     
     memset(&status, 0x00, sizeof(struct SystemStatus));
 
-    if (pthread_create(&thread_modbus, NULL, modbus_thread, NULL) == 0)
-    {    
-        if(tcpserver_init())
-        {
+    if(tcpserver_init())
+    {
+        if (pthread_create(&thread_modbus, NULL, modbus_thread, NULL) == 0)
+        {    
             while (bRunning)
             {
                 input = getchar();
@@ -433,12 +433,12 @@ int main()
         }
         else
         {
-            printf("Error creating TCP server.\n");
+            printf("Error creating modbus thread.\n");
         }
     }
     else
     {
-        printf("Error creating modbus thread.\n");
+        printf("Error creating TCP server.\n");
     }
     
     printf("Waiting for threads to finish...\n");
