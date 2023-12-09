@@ -164,7 +164,8 @@ bool tcpserver_init()
     while(!bServerRunning)
     {
         // Create socket
-        if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+        if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+        {
             printf("Error creating socket\n");
             sleep(1);
         }
@@ -191,10 +192,13 @@ bool tcpserver_init()
                 }
                 else
                 {
+                    bServerRunning = true;
+                
                     if(0 != pthread_create(&serverThread, NULL, &handle_server, NULL))
                     {
                         printf("Error creating server thread\n");
                         close(server_socket);
+                        bServerRunning = false;
                         return false;
                     }
                 }
