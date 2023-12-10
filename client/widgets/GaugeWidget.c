@@ -30,7 +30,14 @@ void GaugeWidget_Initialise(struct sdfWidget* psdcWidget,
     psdcWidget->psdcGaugeWidget->fltMinAng = fltMinAng;
     psdcWidget->psdcGaugeWidget->fltMaxAng = fltMaxAng;
     psdcWidget->psdcGaugeWidget->plValue = plValue;
-    Widget_Initialise(psdcWidget, fltXOffset, fltYOffset, fltWidth, fltHeight, GaugeWidget_Update, GaugeWidget_ScreenChanged);
+    Widget_Initialise(psdcWidget,
+                      fltXOffset,
+                      fltYOffset,
+                      fltWidth,
+                      fltHeight,
+                      GaugeWidget_Update,
+                      GaugeWidget_ScreenChanged,
+                      NULL);
 }
 
 void GaugeWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer)

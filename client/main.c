@@ -1,5 +1,6 @@
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -13,6 +14,7 @@
 #include "Widget.h"
 #include "BatteryWidget.h"
 #include "GaugeWidget.h"
+#include "StatusSwitchWidget.h"
 
 #define BATT_CAPACITY_100WH     143.36f
 
@@ -24,15 +26,20 @@ uint32_t lLoadPercent;
 /* UI Stuff. */
 struct sdfWidget sdcWidgetBattery;
 struct sdfWidget sdcWidgetPowerGauge;
+struct sdfWidget sdcWidgetStatusSwitch;
 
 struct sdfWidget* Widgets[] =
 {
     &sdcWidgetBattery,
-    &sdcWidgetPowerGauge
+    &sdcWidgetPowerGauge,
+    &sdcWidgetStatusSwitch
 };
 
 int widgetCount;
 bool bRender = true;
+
+int lXWindowSize;
+int lYWindowSize;
 
 /* System logic */
 pthread_t processingThread;
@@ -68,10 +75,23 @@ void ReceiveStatus(uint8_t* pStatus, uint32_t lLength)
 
 void WindowSizeChanged(int newWidth, int newHeight)
 {
+    lXWindowSize = newWidth;
+    lYWindowSize = newHeight;
+
     for(int i = 0; i < widgetCount; i++)
     {
         Widget_ScreenChanged(Widgets[i], newWidth, newHeight);
     }
+}
+
+void Clicked(int lX, int lY)
+{
+    for(int i = 0; i < widgetCount; i++)
+    {
+        Widget_Click(Widgets[i], lX, lY);
+    }
+    
+    bRender = true;
 }
 
 int main(int argc, char* argv[])
@@ -82,14 +102,14 @@ int main(int argc, char* argv[])
                              0.01f,
                              0.01f,
                              0.15f,
-                             0.99f,
+                             0.98f,
                              &lBatteryPercent);
     
     GaugeWidget_Initialise(&sdcWidgetPowerGauge,
                            0.2f,
                            0.01f,
                            0.5f,
-                           0.99f,
+                           0.98f,
                            0.0f,
                            1100.0f,
                            20.0f,
@@ -98,7 +118,14 @@ int main(int argc, char* argv[])
                            -155.0f * M_PI / 180.0,
                            -25.0f * M_PI / 180.0,
                            &lLoadPercent);
-    
+
+    StatusSwitchWidget_Initialise(&sdcWidgetStatusSwitch,
+                                  0.79f,
+                                  0.01f,
+                                  0.2f,
+                                  0.98f,
+                                  &status);
+
     if(!tcpclient_init())
     {
         printf("Failed to create TCP client. Exiting.\n");    
@@ -156,6 +183,8 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+    TTF_Init();
+
     SDL_Event e;
 
     while (!quit)
@@ -186,6 +215,18 @@ int main(int argc, char* argv[])
                         WindowSizeChanged(e.window.data1, e.window.data2);
                     }
                 }
+                
+                case SDL_FINGERDOWN:
+                {
+                    Clicked((int)(e.tfinger.x * (float)lXWindowSize), (int)(e.tfinger.y * (float)lYWindowSize));
+                }
+                break;
+                
+                case SDL_MOUSEBUTTONDOWN:
+                {
+                    Clicked(e.button.x, e.button.y);
+                }
+                break;
             }
         
             if (e.type == SDL_QUIT)

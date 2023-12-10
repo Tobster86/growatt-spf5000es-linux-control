@@ -1,6 +1,7 @@
 
 #include "BatteryWidget.h"
 #include <SDL2/SDL_image.h>
+#include <stdbool.h>
 
 #define BATT_TOP_OFFSET     0.15f
 #define BATT_HEIGHT_OFFSET  0.75f
@@ -11,10 +12,11 @@ const SDL_Colour col50 = { 0, 150, 0, 255 };
 const SDL_Colour col25 = { 150, 150, 0, 255 };
 const SDL_Colour colLow = { 150, 0, 0, 255 };
 
-SDL_Texture* textureBattery = NULL;
+static SDL_Texture* textureBattery = NULL;
 
 static void BatteryWidget_InitAssets(SDL_Renderer* pRenderer)
 {
+    static bool bFailed = false;
     SDL_Surface* surface = IMG_Load("assets/batt.png");
     
     if(NULL != surface)
@@ -22,8 +24,11 @@ static void BatteryWidget_InitAssets(SDL_Renderer* pRenderer)
         textureBattery = SDL_CreateTextureFromSurface(pRenderer, surface);
         SDL_FreeSurface(surface);
     }
-    else
+    else if(!bFailed)
+    {
         printf("Failed to load battery texture.\n");
+        bFailed = true;
+    }
 }
 
 void BatteryWidget_Initialise(struct sdfWidget* psdcWidget,
@@ -35,7 +40,14 @@ void BatteryWidget_Initialise(struct sdfWidget* psdcWidget,
 {
     psdcWidget->psdcBatteryWidget = malloc(sizeof(struct sdfBatteryWidget));
     psdcWidget->psdcBatteryWidget->plBatteryPercent = plBatteryPercent;
-    Widget_Initialise(psdcWidget, fltXOffset, fltYOffset, fltWidth, fltHeight, BatteryWidget_Update, BatteryWidget_ScreenChanged);
+    Widget_Initialise(psdcWidget,
+                      fltXOffset,
+                      fltYOffset,
+                      fltWidth,
+                      fltHeight,
+                      BatteryWidget_Update,
+                      BatteryWidget_ScreenChanged,
+                      NULL);
 }
 
 void BatteryWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer)
