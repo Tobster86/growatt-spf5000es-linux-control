@@ -214,8 +214,9 @@ int main(int argc, char* argv[])
             }
             
             SDL_RenderPresent(renderer);
-            SDL_Delay(50);
         }
+
+        SDL_Delay(50);
     }
 
     SDL_DestroyRenderer(renderer);
