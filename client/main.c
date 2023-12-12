@@ -43,6 +43,9 @@ bool bRender = true;
 int lXWindowSize;
 int lYWindowSize;
 
+const SDL_Colour colText = { 255, 0, 0, 255 };
+static TTF_Font* font = NULL;
+
 /* System logic */
 pthread_t processingThread;
 bool quit = false;
@@ -56,6 +59,8 @@ void *process(void *arg)
         {
             tcpclient_SendCommand(COMMAND_REQUEST_STATUS);
         }
+        else
+            bRender = true; //So we see the "disconnected" screen.
         
         sleep(1);
     }
@@ -225,6 +230,13 @@ int main(int argc, char* argv[])
     }
 
     TTF_Init();
+    
+    font = TTF_OpenFont("assets/FiraCode-Regular.ttf", 120);
+
+    if(NULL == font)
+    {
+        printf("Failed to load font.\n");
+    }
 
     SDL_Event e;
 
@@ -296,9 +308,27 @@ int main(int argc, char* argv[])
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
             SDL_RenderClear(renderer);
             
-            for(int i = 0; i < widgetCount; i++)
+            if(tcpclient_GetConnected())
             {
-                Widget_Update(Widgets[i], renderer);
+                for(int i = 0; i < widgetCount; i++)
+                {
+                    Widget_Update(Widgets[i], renderer);
+                }
+            }
+            else
+            {
+                if(NULL != font)
+                {
+                    SDL_Rect rectText = { lXWindowSize / 4,
+                                          lYWindowSize / 2,
+                                          lXWindowSize / 2,
+                                          lYWindowSize / 10 };
+                    SDL_Surface* textSurface = TTF_RenderText_Blended(font, "Not Connected", colText);
+                    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+                    SDL_RenderCopy(renderer, textTexture, NULL, &rectText);
+                    SDL_FreeSurface(textSurface);
+                    SDL_DestroyTexture(textTexture);
+                }
             }
             
             SDL_RenderPresent(renderer);
