@@ -18,6 +18,8 @@
 
 #define BATT_CAPACITY_100WH     143.36f
 
+#define UI_INPUT_FILTER         5000    /* Disregard all user interaction for the first 5 seconds. */
+
 /* System status and variables. */
 struct SystemStatus status;
 uint32_t lBatteryPercent;
@@ -257,13 +259,19 @@ int main(int argc, char* argv[])
                 
                 case SDL_FINGERDOWN:
                 {
-                    Clicked((int)(e.tfinger.x * (float)lXWindowSize), (int)(e.tfinger.y * (float)lYWindowSize));
+                    if(SDL_GetTicks() > UI_INPUT_FILTER)
+                    {
+                        Clicked((int)(e.tfinger.x * (float)lXWindowSize), (int)(e.tfinger.y * (float)lYWindowSize));
+                    }
                 }
                 break;
                 
                 case SDL_MOUSEBUTTONDOWN:
                 {
-                    Clicked(e.button.x, e.button.y);
+                    if(SDL_GetTicks() > UI_INPUT_FILTER)
+                    {
+                        Clicked(e.button.x, e.button.y);
+                    }
                 }
                 break;
             }
