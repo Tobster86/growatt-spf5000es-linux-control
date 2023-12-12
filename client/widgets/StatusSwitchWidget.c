@@ -189,7 +189,8 @@ void StatusSwitchWidget_Click(struct sdfWidget* psdcWidget, int lXPos, int lYPos
             *psdcWidget->psdcStatusSwitchWidget->pnSwitchRequest = SYSTEM_STATE_BYPASS;
         else if(SYSTEM_STATE_BYPASS == psdcWidget->psdcStatusSwitchWidget->pSystemStatus->nSystemState)
             *psdcWidget->psdcStatusSwitchWidget->pnSwitchRequest = SYSTEM_STATE_DAY;
-            
+
+        printf("User tapped the batt/grid switch.\n");
         //Note: Ignore if we're on night mode. Also ignore further user inputs until the system has responded.
     }
 }

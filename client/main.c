@@ -78,11 +78,13 @@ void ReceiveStatus(uint8_t* pStatus, uint32_t lLength)
             //Cancel any request if it's in day (battery) mode or night (grid) mode.
             if(SYSTEM_STATE_DAY == status.nSystemState || SYSTEM_STATE_NIGHT == status.nSystemState)
             {
+                printf("Cancelling batt switch request as it's already on batts/night.\n");
                 nSwitchRequest = SYSTEM_STATE_NO_CHANGE;
             }
             else
             {
                 //Send a request to switch to batteries.
+                printf("Requesting batts...\n");
                 tcpclient_SendCommand(COMMAND_REQUEST_BATTS);
             }
         }
@@ -93,11 +95,13 @@ void ReceiveStatus(uint8_t* pStatus, uint32_t lLength)
             //Cancel any request if it's in bypass (grid) mode or night (grid) mode.
             if(SYSTEM_STATE_BYPASS == status.nSystemState || SYSTEM_STATE_NIGHT == status.nSystemState)
             {
+                printf("Cancelling grid switch request as it's already on grid/night.\n");
                 nSwitchRequest = SYSTEM_STATE_NO_CHANGE;
             }
             else
             {
                 //Send a request to switch to batteries.
+                printf("Requesting grid...\n");
                 tcpclient_SendCommand(COMMAND_REQUEST_GRID);
             }
         }

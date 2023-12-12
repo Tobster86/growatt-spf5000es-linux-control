@@ -70,12 +70,14 @@ void GetStatus(uint8_t** ppStatus, uint32_t* pLength)
 
 void SetBatts()
 {
+    printft("Remote user requested switch to batts.\n");
     bManualSwitchToGrid = false;
     bManualSwitchToBatts = true;
 }
 
 void SetGrid()
 {
+    printft("Remote user requested switch to grid.\n");
     bManualSwitchToGrid = true;
     bManualSwitchToBatts = false;
 }
