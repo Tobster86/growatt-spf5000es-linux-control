@@ -181,16 +181,14 @@ void* modbus_thread(void* arg)
                     status.nMpptFanspeed = inputRegs[MPPT_FANSPEED];
                     status.nInvFanspeed = inputRegs[INV_FANSPEED];
                 
-                    //Auto/manual grid switching.
-                    if(SYSTEM_STATE_DAY == status.nSystemState &&
-                       (status.nLoadPercent > SWITCH_TO_GRID_LOAD_PERCENT || bManualSwitchToGrid))
+                    //Manual grid switching.
+                    if(SYSTEM_STATE_DAY == status.nSystemState && bManualSwitchToGrid)
                     {
                         bManualSwitchToGrid = false;
                         status.nSystemState = SYSTEM_STATE_BYPASS;
                         write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_GRID);
-                        status.slSwitchTime = time(NULL);
                         slModeWriteTime = time(NULL);
-                        printft("Switched to grid due to overload/override.\n");
+                        printft("Switched to grid due to override.\n");
                     }
                     
                     //Day/night switching.
@@ -217,17 +215,14 @@ void* modbus_thread(void* arg)
                         }
                     }
                     
-                    //Auto/manual batts switching.
-                    if(SYSTEM_STATE_BYPASS == status.nSystemState &&
-                       ((status.nLoadPercent <= SWITCH_TO_GRID_LOAD_PERCENT &&
-                         time(NULL) > status.slSwitchTime + RETURN_TO_BATTS_TIME) ||
-                        bManualSwitchToBatts))
+                    //Manual batts switching.
+                    if(SYSTEM_STATE_BYPASS == status.nSystemState && bManualSwitchToBatts)
                     {
                         bManualSwitchToBatts = false;
                         status.nSystemState = SYSTEM_STATE_DAY;
                         write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_BATTS);
                         slModeWriteTime = time(NULL);
-                        printft("Switched to batts due to overload expiry/override.\n");
+                        printft("Switched to batts due to override.\n");
                     }
                     
                     //Final state check. (Note: inverter mode is read back from inverter on next pass).
