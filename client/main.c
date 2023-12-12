@@ -44,6 +44,7 @@ int lYWindowSize;
 /* System logic */
 pthread_t processingThread;
 bool quit = false;
+uint16_t nSwitchRequest = SYSTEM_STATE_NO_CHANGE;
 
 void *process(void *arg)
 {
@@ -67,8 +68,41 @@ void ReceiveStatus(uint8_t* pStatus, uint32_t lLength)
     
     //Calculate battery percent.
     lBatteryPercent = (uint32_t)((((BATT_CAPACITY_100WH - (float)status.nBattuseToday) / BATT_CAPACITY_100WH) * 100.0f) + 0.5f);
-    
     lLoadPercent = status.nLoadPercent;
+    
+    //Determine if we should request a state change.
+    switch(nSwitchRequest)
+    {
+        case SYSTEM_STATE_DAY:
+        {
+            //Cancel any request if it's in day (battery) mode or night (grid) mode.
+            if(SYSTEM_STATE_DAY == status.nSystemState || SYSTEM_STATE_NIGHT == status.nSystemState)
+            {
+                nSwitchRequest = SYSTEM_STATE_NO_CHANGE;
+            }
+            else
+            {
+                //Send a request to switch to batteries.
+                tcpclient_SendCommand(COMMAND_REQUEST_BATTS);
+            }
+        }
+        break;
+        
+        case SYSTEM_STATE_BYPASS:
+        {
+            //Cancel any request if it's in bypass (grid) mode or night (grid) mode.
+            if(SYSTEM_STATE_BYPASS == status.nSystemState || SYSTEM_STATE_NIGHT == status.nSystemState)
+            {
+                nSwitchRequest = SYSTEM_STATE_NO_CHANGE;
+            }
+            else
+            {
+                //Send a request to switch to batteries.
+                tcpclient_SendCommand(COMMAND_REQUEST_GRID);
+            }
+        }
+        break;
+    }
     
     bRender = true;
 }
@@ -124,7 +158,8 @@ int main(int argc, char* argv[])
                                   0.01f,
                                   0.2f,
                                   0.98f,
-                                  &status);
+                                  &status,
+                                  &nSwitchRequest);
 
     if(!tcpclient_init())
     {

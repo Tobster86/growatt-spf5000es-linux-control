@@ -68,6 +68,18 @@ void GetStatus(uint8_t** ppStatus, uint32_t* pLength)
     *pLength = sizeof(struct SystemStatus);
 }
 
+void SetBatts()
+{
+    bManualSwitchToGrid = false;
+    bManualSwitchToBatts = true;
+}
+
+void SetGrid()
+{
+    bManualSwitchToGrid = true;
+    bManualSwitchToBatts = false;
+}
+
 static void reinit()
 {
     printft("MODBUS comms reinit.\n");

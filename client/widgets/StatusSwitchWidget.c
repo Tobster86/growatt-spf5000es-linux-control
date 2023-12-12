@@ -11,40 +11,36 @@ const SDL_Colour colBad = { 255, 0, 0, 255 };
 
 static SDL_Texture* texturePylon = NULL;
 static SDL_Texture* textureInverter = NULL;
+static SDL_Texture* textureSwitchBatt = NULL;
+static SDL_Texture* textureSwitchGrid = NULL;
 
 static TTF_Font* font = NULL;
+
+static void LoadTexture(SDL_Renderer* pRenderer, bool* bFailed, const char* path, SDL_Texture** texture)
+{
+    SDL_Surface* surface = IMG_Load(path);
+    
+    if(NULL != surface)
+    {
+        *texture = SDL_CreateTextureFromSurface(pRenderer, surface);
+        SDL_SetTextureBlendMode(*texture, SDL_BLENDMODE_MOD);
+        SDL_FreeSurface(surface);
+    }
+    else if(!*bFailed)
+    {
+        printf("Failed to load %s.\n", path);
+        *bFailed = true;
+    }
+}
 
 static void StatusSwitchWidget_InitAssets(SDL_Renderer* pRenderer)
 {
     static bool bFailed = false;
     
-    SDL_Surface* surfacePylon = IMG_Load("assets/pylon.png");
-    
-    if(NULL != surfacePylon)
-    {
-        texturePylon = SDL_CreateTextureFromSurface(pRenderer, surfacePylon);
-        SDL_SetTextureBlendMode(texturePylon, SDL_BLENDMODE_MOD);
-        SDL_FreeSurface(surfacePylon);
-    }
-    else if(!bFailed)
-    {
-        printf("Failed to load pylon texture.\n");
-        bFailed = true;
-    }
-    
-    SDL_Surface* surfaceInverter = IMG_Load("assets/inverter.png");
-    
-    if(NULL != surfaceInverter)
-    {
-        textureInverter = SDL_CreateTextureFromSurface(pRenderer, surfaceInverter);
-        SDL_SetTextureBlendMode(textureInverter, SDL_BLENDMODE_MOD);
-        SDL_FreeSurface(surfaceInverter);
-    }
-    else if(!bFailed)
-    {
-        printf("Failed to load inverter texture.\n");
-        bFailed = true;
-    }
+    LoadTexture(pRenderer, &bFailed, "assets/pylon.png", &texturePylon);
+    LoadTexture(pRenderer, &bFailed, "assets/inverter.png", &textureInverter);
+    LoadTexture(pRenderer, &bFailed, "assets/switch_batt.png", &textureSwitchBatt);
+    LoadTexture(pRenderer, &bFailed, "assets/switch_grid.png", &textureSwitchGrid);
     
     font = TTF_OpenFont("assets/FiraCode-Regular.ttf", 120);
 
@@ -60,10 +56,12 @@ void StatusSwitchWidget_Initialise(struct sdfWidget* psdcWidget,
                               float fltYOffset,
                               float fltWidth,
                               float fltHeight,
-                              struct SystemStatus* pSystemStatus)
+                              struct SystemStatus* pSystemStatus,
+                              uint16_t* pnSwitchRequest)
 {
     psdcWidget->psdcStatusSwitchWidget = malloc(sizeof(struct sdfStatusSwitchWidget));
     psdcWidget->psdcStatusSwitchWidget->pSystemStatus = pSystemStatus;
+    psdcWidget->psdcStatusSwitchWidget->pnSwitchRequest = pnSwitchRequest;
     Widget_Initialise(psdcWidget,
                       fltXOffset,
                       fltYOffset,
@@ -81,15 +79,6 @@ void StatusSwitchWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRend
     {
         StatusSwitchWidget_InitAssets(pRenderer);
     }
-
-    SDL_SetRenderDrawColor(pRenderer, 0, 0, 50, 255);
-    
-    SDL_Rect rectBckg = { psdcWidget->lXPos,
-                          psdcWidget->lYPos,
-                          psdcWidget->lWidth,
-                          psdcWidget->lHeight };
-
-    SDL_RenderFillRect(pRenderer, &rectBckg);
     
     //Draw current inverter status.
     SDL_Rect rectStatus = { psdcWidget->lXPos,
@@ -157,41 +146,30 @@ void StatusSwitchWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRend
         }
     }
     
+    //Draw batt/grid switch.
+    SDL_Rect rectSwitch = { psdcWidget->lXPos,
+                            psdcWidget->lYPos + psdcWidget->lWidth,
+                            psdcWidget->lWidth,
+                            psdcWidget->lHeight - psdcWidget->lWidth };
 
+    SDL_SetRenderDrawColor(pRenderer, 255, 255, 255, 255);
+    SDL_RenderFillRect(pRenderer, &rectSwitch);
     
-    
-
-    /*//Draw battery body.
-    SDL_SetRenderDrawColor(pRenderer, colBatt.r, colBatt.g, colBatt.b, colBatt.a);
-    
-    SDL_Rect rectBckg = { psdcWidget->lXPos,
-                          psdcWidget->lYPos,
-                          psdcWidget->lWidth,
-                          psdcWidget->lHeight };
-                          
-    SDL_RenderCopy(pRenderer, textureBattery, NULL, &rectBckg);
-    
-    //Draw capacity bar.
-    uint32_t lAreaTopOffset = (((float)psdcWidget->lHeight) * BATT_TOP_OFFSET + 0.5f);
-    uint32_t lAreaHeight = (((float)psdcWidget->lHeight * BATT_HEIGHT_OFFSET) + 0.5f);
-
-    uint32_t lAreaWidth = (((float)psdcWidget->lWidth) * (1.0f - BATT_WIDTH_OFFSET) + 0.5f);
-    uint32_t lAreaSideOffset = (psdcWidget->lWidth - lAreaWidth) / 2;
-    
-    if(*psdcWidget->psdcStatusSwitch->plBatteryPercent >= 50)
-        SDL_SetRenderDrawColor(pRenderer, col50.r, col50.g, col50.b, col50.a);
-    else if(*psdcWidget->psdcStatusSwitch->plBatteryPercent >= 25)
-        SDL_SetRenderDrawColor(pRenderer, col25.r, col25.g, col25.b, col25.a);
-    else
-        SDL_SetRenderDrawColor(pRenderer, colLow.r, colLow.g, colLow.b, colLow.a);
-        
-    uint32_t lPowerHeight = (int)((((float)lAreaHeight / 100.0f) * (float)*psdcWidget->psdcStatusSwitch->plBatteryPercent) + 0.5f);
-        
-    SDL_Rect rectBatt = { psdcWidget->lXPos + lAreaSideOffset,
-                          psdcWidget->lYPos + lAreaTopOffset + (lAreaHeight - lPowerHeight),
-                          lAreaWidth,
-                          lPowerHeight };
-    SDL_RenderFillRect(pRenderer, &rectBatt);*/
+    if(SYSTEM_STATE_DAY == *psdcWidget->psdcStatusSwitchWidget->pnSwitchRequest ||
+       (SYSTEM_STATE_NO_CHANGE == *psdcWidget->psdcStatusSwitchWidget->pnSwitchRequest &&
+        SYSTEM_STATE_DAY == psdcWidget->psdcStatusSwitchWidget->pSystemStatus->nSystemState))
+    {
+        //Handle in day (battery) position.
+        SDL_RenderCopy(pRenderer, textureSwitchBatt, NULL, &rectSwitch);
+    }
+    else if(SYSTEM_STATE_BYPASS == *psdcWidget->psdcStatusSwitchWidget->pnSwitchRequest ||
+            (SYSTEM_STATE_NO_CHANGE == *psdcWidget->psdcStatusSwitchWidget->pnSwitchRequest &&
+             SYSTEM_STATE_BYPASS == psdcWidget->psdcStatusSwitchWidget->pSystemStatus->nSystemState) ||
+            SYSTEM_STATE_NIGHT == psdcWidget->psdcStatusSwitchWidget->pSystemStatus->nSystemState)
+    {
+        //Handle in night/bypass (grid) position.
+        SDL_RenderCopy(pRenderer, textureSwitchGrid, NULL, &rectSwitch);
+    }
 }
 
 void StatusSwitchWidget_ScreenChanged(struct sdfWidget* psdcWidget)
@@ -201,5 +179,18 @@ void StatusSwitchWidget_ScreenChanged(struct sdfWidget* psdcWidget)
 
 void StatusSwitchWidget_Click(struct sdfWidget* psdcWidget, int lXPos, int lYPos)
 {
+    if(lXPos >= psdcWidget->lXPos &&
+       lXPos <= psdcWidget->lXPos + psdcWidget->lWidth &&
+       lYPos >= psdcWidget->lYPos + psdcWidget->lWidth &&
+       lYPos <= psdcWidget->lYPos + psdcWidget->lWidth + (psdcWidget->lHeight - psdcWidget->lWidth))
+    {
+        //Raise a switch to batt/grid request accordingly.
+        if(SYSTEM_STATE_DAY == psdcWidget->psdcStatusSwitchWidget->pSystemStatus->nSystemState)
+            *psdcWidget->psdcStatusSwitchWidget->pnSwitchRequest = SYSTEM_STATE_BYPASS;
+        else if(SYSTEM_STATE_BYPASS == psdcWidget->psdcStatusSwitchWidget->pSystemStatus->nSystemState)
+            *psdcWidget->psdcStatusSwitchWidget->pnSwitchRequest = SYSTEM_STATE_DAY;
+            
+        //Note: Ignore if we're on night mode. Also ignore further user inputs until the system has responded.
+    }
 }
 

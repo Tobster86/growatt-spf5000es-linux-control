@@ -8,6 +8,7 @@
 struct sdfStatusSwitchWidget
 {
     struct SystemStatus* pSystemStatus;
+    uint16_t* pnSwitchRequest;
 };
 
 void StatusSwitchWidget_Initialise(struct sdfWidget* psdcWidget,
@@ -15,7 +16,8 @@ void StatusSwitchWidget_Initialise(struct sdfWidget* psdcWidget,
                                    float fltYOffset,
                                    float fltWidth,
                                    float fltHeight,
-                                   struct SystemStatus* pSystemStatus);
+                                   struct SystemStatus* pSystemStatus,
+                                   uint16_t* pnSwitchRequest);
 
 void StatusSwitchWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer);
 

@@ -43,6 +43,18 @@ void commandReceived_callback(struct sdfComms* psdcComms, uint16_t nCommandID)
             Comms_SendObject(psdcComms, OBJECT_STATUS, lLength, pStatus);
         }
         break;
+        
+        case COMMAND_REQUEST_GRID:
+        {
+            SetGrid();
+        }
+        break;
+        
+        case COMMAND_REQUEST_BATTS:
+        {
+            SetBatts();
+        }
+        break;
     
         default: printf("Client socket %u sent unknown command %u.\n", psdcComms->lID, nCommandID);
     }

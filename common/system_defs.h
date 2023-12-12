@@ -13,9 +13,10 @@
 #define SWITCH_TO_GRID_LOAD_PERCENT 950  //The raw value is actually permille.
 #define CHECK_MODE_TIMEOUT          10   //Number of seconds to check the mode after changing it.
 
-#define SYSTEM_STATE_DAY    0 /* Running on batteries */
-#define SYSTEM_STATE_BYPASS 1 /* Temporarily grid-switched */
-#define SYSTEM_STATE_NIGHT  2 /* Grid-switched and charging batteries */
+#define SYSTEM_STATE_NO_CHANGE 0xFFFF /* Placeholder for clients not requesting a change. */
+#define SYSTEM_STATE_DAY       0      /* Running on batteries */
+#define SYSTEM_STATE_BYPASS    1      /* Temporarily grid-switched */
+#define SYSTEM_STATE_NIGHT     2      /* Grid-switched and charging batteries */
 
 struct SystemStatus
 {
