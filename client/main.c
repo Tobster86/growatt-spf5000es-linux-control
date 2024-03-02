@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
+#include "UIUtils.h"
 #include "system_defs.h"
 #include "comms_defs.h"
 #include "tcpclient.h"
@@ -16,14 +17,10 @@
 #include "GaugeWidget.h"
 #include "StatusSwitchWidget.h"
 
-#define BATT_CAPACITY_100WH     143.36f
-
 #define UI_INPUT_FILTER         5000    /* Disregard all user interaction for the first 5 seconds. */
 
 /* System status and variables. */
 struct SystemStatus status;
-uint32_t lBatteryPercent;
-uint32_t lLoadPercent;
 
 /* UI Stuff. */
 struct sdfWidget sdcWidgetBattery;
@@ -44,8 +41,6 @@ int lXWindowSize;
 int lYWindowSize;
 
 const SDL_Colour colText = { 255, 0, 0, 255 };
-static TTF_Font* font = NULL;
-
 /* System logic */
 pthread_t processingThread;
 bool quit = false;
@@ -72,10 +67,6 @@ void *process(void *arg)
 void ReceiveStatus(uint8_t* pStatus, uint32_t lLength)
 {
     memcpy(&status, pStatus, lLength);
-    
-    //Calculate battery percent.
-    lBatteryPercent = (uint32_t)((((BATT_CAPACITY_100WH - (float)status.nBattuseToday) / BATT_CAPACITY_100WH) * 100.0f) + 0.5f);
-    lLoadPercent = status.nLoadPercent;
     
     //Determine if we should request a state change.
     switch(nSwitchRequest)
@@ -148,7 +139,7 @@ int main(int argc, char* argv[])
                              0.01f,
                              0.15f,
                              0.98f,
-                             &lBatteryPercent);
+                             &status);
     
     GaugeWidget_Initialise(&sdcWidgetPowerGauge,
                            0.2f,
@@ -162,7 +153,8 @@ int main(int argc, char* argv[])
                            999.0f,
                            -155.0f * M_PI / 180.0,
                            -25.0f * M_PI / 180.0,
-                           &lLoadPercent);
+                           &status.nLoadPercent,
+                           "W");
 
     StatusSwitchWidget_Initialise(&sdcWidgetStatusSwitch,
                                   0.79f,
@@ -229,14 +221,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    TTF_Init();
-    
-    font = TTF_OpenFont("assets/FiraCode-Regular.ttf", 120);
-
-    if(NULL == font)
-    {
-        printf("Failed to load font.\n");
-    }
+    UIUtils_Init();
 
     SDL_Event e;
 
@@ -317,18 +302,12 @@ int main(int argc, char* argv[])
             }
             else
             {
-                if(NULL != font)
-                {
-                    SDL_Rect rectText = { lXWindowSize / 4,
-                                          lYWindowSize / 2,
-                                          lXWindowSize / 2,
-                                          lYWindowSize / 10 };
-                    SDL_Surface* textSurface = TTF_RenderText_Blended(font, "Not Connected", colText);
-                    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
-                    SDL_RenderCopy(renderer, textTexture, NULL, &rectText);
-                    SDL_FreeSurface(textSurface);
-                    SDL_DestroyTexture(textTexture);
-                }
+                SDL_Rect rectNotConnectedText = { lXWindowSize / 4,
+                                                  lYWindowSize / 2,
+                                                  lXWindowSize / 2,
+                                                  lYWindowSize / 10 };
+            
+                UIUtils_RenderText(renderer, colText, rectNotConnectedText, "Not Connected");
             }
             
             SDL_RenderPresent(renderer);

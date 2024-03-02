@@ -4,10 +4,13 @@
 
 #include <SDL2/SDL.h>
 #include "Widget.h"
+#include "system_defs.h"
+
+#define BATT_CAPACITY_100WH     100.00f
 
 struct sdfBatteryWidget
 {
-    uint32_t* plBatteryPercent;
+    struct SystemStatus* pStatus;
 };
 
 void BatteryWidget_Initialise(struct sdfWidget* psdcWidget,
@@ -15,7 +18,7 @@ void BatteryWidget_Initialise(struct sdfWidget* psdcWidget,
                               float fltYOffset,
                               float fltWidth,
                               float fltHeight,
-                              uint32_t* plBatteryPercent);
+                              struct SystemStatus* pStatus);
 
 void BatteryWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer);
 

@@ -8,9 +8,9 @@
 #define BATT_WIDTH_OFFSET   0.3f
 
 const SDL_Colour colBatt = { 100, 100, 100, 255 };
-const SDL_Colour col50 = { 0, 150, 0, 255 };
-const SDL_Colour col25 = { 150, 150, 0, 255 };
-const SDL_Colour colLow = { 150, 0, 0, 255 };
+const SDL_Colour col50 = { 0, 255, 0, 255 };
+const SDL_Colour col25 = { 255, 255, 0, 255 };
+const SDL_Colour colLow = { 255, 0, 0, 255 };
 
 static SDL_Texture* textureBattery = NULL;
 
@@ -36,10 +36,10 @@ void BatteryWidget_Initialise(struct sdfWidget* psdcWidget,
                               float fltYOffset,
                               float fltWidth,
                               float fltHeight,
-                              uint32_t* plBatteryPercent)
+                              struct SystemStatus* pStatus)
 {
     psdcWidget->psdcBatteryWidget = malloc(sizeof(struct sdfBatteryWidget));
-    psdcWidget->psdcBatteryWidget->plBatteryPercent = plBatteryPercent;
+    psdcWidget->psdcBatteryWidget->pStatus = pStatus;
     Widget_Initialise(psdcWidget,
                       fltXOffset,
                       fltYOffset,
@@ -52,6 +52,10 @@ void BatteryWidget_Initialise(struct sdfWidget* psdcWidget,
 
 void BatteryWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer)
 {
+    uint32_t lBatteryPercent = (uint32_t)((((BATT_CAPACITY_100WH -
+                                             (float)psdcWidget->psdcBatteryWidget->pStatus->nBattuseToday) /
+                                            BATT_CAPACITY_100WH) * 100.0f) + 0.5f);
+
     //Initialise assets if needed.
     if(NULL == textureBattery)
     {
@@ -75,14 +79,14 @@ void BatteryWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer)
     uint32_t lAreaWidth = (((float)psdcWidget->lWidth) * (1.0f - BATT_WIDTH_OFFSET) + 0.5f);
     uint32_t lAreaSideOffset = (psdcWidget->lWidth - lAreaWidth) / 2;
     
-    if(*psdcWidget->psdcBatteryWidget->plBatteryPercent >= 50)
+    if(lBatteryPercent >= 50)
         SDL_SetRenderDrawColor(pRenderer, col50.r, col50.g, col50.b, col50.a);
-    else if(*psdcWidget->psdcBatteryWidget->plBatteryPercent >= 25)
+    else if(lBatteryPercent >= 25)
         SDL_SetRenderDrawColor(pRenderer, col25.r, col25.g, col25.b, col25.a);
     else
         SDL_SetRenderDrawColor(pRenderer, colLow.r, colLow.g, colLow.b, colLow.a);
         
-    uint32_t lPowerHeight = (int)((((float)lAreaHeight / 100.0f) * (float)*psdcWidget->psdcBatteryWidget->plBatteryPercent) + 0.5f);
+    uint32_t lPowerHeight = (int)((((float)lAreaHeight / 100.0f) * (float)lBatteryPercent) + 0.5f);
         
     SDL_Rect rectBatt = { psdcWidget->lXPos + lAreaSideOffset,
                           psdcWidget->lYPos + lAreaTopOffset + (lAreaHeight - lPowerHeight),

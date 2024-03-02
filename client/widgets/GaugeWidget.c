@@ -19,7 +19,8 @@ void GaugeWidget_Initialise(struct sdfWidget* psdcWidget,
                             float fltWarn,
                             float fltMinAng,
                             float fltMaxAng,
-                            uint32_t* plValue)
+                            uint16_t* pnValue,
+                            char* pcUnit)
 {
     psdcWidget->psdcGaugeWidget = malloc(sizeof(struct sdfGaugeWidget));
     psdcWidget->psdcGaugeWidget->fltMin = fltMin;
@@ -29,7 +30,8 @@ void GaugeWidget_Initialise(struct sdfWidget* psdcWidget,
     psdcWidget->psdcGaugeWidget->fltWarn = fltWarn;
     psdcWidget->psdcGaugeWidget->fltMinAng = fltMinAng;
     psdcWidget->psdcGaugeWidget->fltMaxAng = fltMaxAng;
-    psdcWidget->psdcGaugeWidget->plValue = plValue;
+    psdcWidget->psdcGaugeWidget->pnValue = pnValue;
+    psdcWidget->psdcGaugeWidget->pcUnit = pcUnit;
     Widget_Initialise(psdcWidget,
                       fltXOffset,
                       fltYOffset,
@@ -104,7 +106,7 @@ void GaugeWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer)
     float fltValAng = psdcWidget->psdcGaugeWidget->fltMinAng +
                       (((psdcWidget->psdcGaugeWidget->fltMaxAng - psdcWidget->psdcGaugeWidget->fltMinAng) /
                         (psdcWidget->psdcGaugeWidget->fltMax - psdcWidget->psdcGaugeWidget->fltMin)) *
-                        (float)*psdcWidget->psdcGaugeWidget->plValue);
+                        (float)*psdcWidget->psdcGaugeWidget->pnValue);
 
     SDL_SetRenderDrawColor(pRenderer, colNeedle.r, colNeedle.g, colNeedle.b, colNeedle.a);
                        
@@ -113,6 +115,9 @@ void GaugeWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRenderer)
                        lYOrigin,
                        lXOrigin + (int32_t)(((fltNeedleLength) * cosf(fltValAng)) + 0.5f),
                        lYOrigin + (int32_t)(((fltNeedleLength) * sinf(fltValAng)) + 0.5f));
+                       
+    //Draw text.
+    
 }
 
 void GaugeWidget_ScreenChanged(struct sdfWidget* psdcWidget)
