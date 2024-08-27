@@ -145,18 +145,31 @@ void* modbus_thread(void* arg)
                     
                     printf("Reading config registers...\n");
                     
-                    uint16_t configReg;
+                    uint16_t configRegs[10];
                     
-                    for(int i = 0; i < 500; i++)
+                    for(int i = 0; i < 100; i++)
                     {
-                        if(-1 == modbus_read_registers(ctx, i, 1, &configReg))
+                        memset(configRegs, 0, sizeof(configRegs));
+                    
+                        if(-1 == modbus_read_registers(ctx, i * 10, 10, &configRegs[0]))
                         {
                             printf("Failed to read config registers: %s\n", modbus_strerror(errno));
                             break;
                         }
                         else
                         {
-                            printf("%d\t%d\n", i, configReg);
+                            printf("%d %8d %8d %8d %8d %8d %8d %8d %8d %8d %8d\n",
+                                   i * 10,
+                                   configRegs[0],
+                                   configRegs[1],
+                                   configRegs[2],
+                                   configRegs[3],
+                                   configRegs[4],
+                                   configRegs[5],
+                                   configRegs[6],
+                                   configRegs[7],
+                                   configRegs[8],
+                                   configRegs[9]);
                         }
                     }
                     
