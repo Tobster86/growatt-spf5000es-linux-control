@@ -145,21 +145,22 @@ void* modbus_thread(void* arg)
                     
                     printf("Reading config registers...\n");
                     
-                    uint16_t configRegs[500];
-                
-                    if(-1 == modbus_read_registers(ctx, 0, 500, &configRegs[0]))
+                    uint16_t configReg;
+                    
+                    for(int i = 0; i < 500; i++)
                     {
-                        printf("Failed to read config registers: %s\n", modbus_strerror(errno));
-                    }
-                    else
-                    {
-                        for(int i = 0; i < 500; i++)
+                        if(-1 == modbus_read_registers(ctx, i, 1, &configReg))
                         {
-                            printf("%d\t%d\n", i, configRegs[i]);
+                            printf("Failed to read config registers: %s\n", modbus_strerror(errno));
+                            break;
                         }
-                        
-                        printf("--------------------------------\n");
+                        else
+                        {
+                            printf("%d\t%d\n", i, configReg);
+                        }
                     }
+                    
+                    printf("--------------------------------\n");
                 }
             
                 //Read input registers and holding register (inverter mode).
