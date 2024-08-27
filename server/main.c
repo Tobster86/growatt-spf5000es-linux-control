@@ -145,15 +145,15 @@ void* modbus_thread(void* arg)
                     
                     printf("Reading config registers...\n");
                     
-                    uint16_t configRegs[100];
+                    uint16_t configRegs[500];
                 
-                    if(-1 == modbus_read_registers(ctx, 0, 100, &configRegs[0]))
+                    if(-1 == modbus_read_registers(ctx, 0, 500, &configRegs[0]))
                     {
                         printf("Failed to read config registers: %s\n", modbus_strerror(errno));
                     }
                     else
                     {
-                        for(int i = 0; i < 100; i++)
+                        for(int i = 0; i < 500; i++)
                         {
                             printf("%d\t%d\n", i, configRegs[i]);
                         }
