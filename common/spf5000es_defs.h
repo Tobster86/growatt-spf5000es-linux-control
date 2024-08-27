@@ -2,15 +2,21 @@
 #ifndef SPF5000ES_DEFS_H
 #define SPF5000ES_DEFS_H
 
+//Growatt SPF ES Config holding register addresses.
 #define GW_HREG_CFG_MODE        1
-#define GW_HREG_HO_OUTPUT_T_Y   45
-#define GW_HREG_HO_OUTPUT_T_MO  46
-#define GW_HREG_HO_OUTPUT_T_D   47
-#define GW_HREG_HO_OUTPUT_T_H   48
-#define GW_HREG_HO_OUTPUT_T_MI  49
-#define GW_HREG_HO_OUTPUT_T_S   50
-#define HOLDING_REGISTER_COUNT  51
+#define GW_HREG_UTIL_START_HOUR 5   //Hour from which utility charging allowed.
+#define GW_HREG_UTIL_END_HOUR   6   //Hour til which utility charging allowed.
+                                    //(Setting both to zero allows any time).
+#define GW_HREG_MAX_CHG_AMPS    34  //Max = Utility + Solar according to manual
+#define GW_HREG_MAX_UTIL_AMPS   38  //Max charging current from utility supply.
+#define GW_HREG_TIME_Y          45
+#define GW_HREG_TIME_MO         46
+#define GW_HREG_TIME_D          47
+#define GW_HREG_TIME_H          48
+#define GW_HREG_TIME_MI         49
+#define GW_HREG_TIME_S          50
 
+//Growatt SPF ES Config values.
 #define GW_CFG_MODE_BATTS   0
 #define GW_CFG_MODE_GRID    2
 
