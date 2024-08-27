@@ -19,6 +19,7 @@
 #include "tcpserver.h"
 
 bool bRunning = true;
+bool bPrintConfigRegisters = false;
 
 enum ModbusState
 {
@@ -138,6 +139,29 @@ void* modbus_thread(void* arg)
 
             case PROCESS:
             {
+                if(bPrintConfigRegisters)
+                {
+                    bPrintConfigRegisters = false;
+                    
+                    printf("Reading config registers...\n");
+                    
+                    uint16_t configRegs[50];
+                
+                    if(-1 == modbus_read_registers(ctx, 0, 50, &configRegs[0]))
+                    {
+                        printf("Failed to read config registers: %s\n", modbus_strerror(errno));
+                    }
+                    else
+                    {
+                        for(int i = 0; i < 50; i++)
+                        {
+                            printf("%d\t%d\n", i, configRegs[i]);
+                        }
+                        
+                        printf("--------------------------------\n");
+                    }
+                }
+            
                 //Read input registers and holding register (inverter mode).
                 if(-1 == modbus_read_input_registers(ctx, 0, INPUT_REGISTER_COUNT, inputRegs) ||
                    -1 == modbus_read_registers(ctx, GW_HREG_CFG_MODE, 1, &nInverterMode))
@@ -441,31 +465,13 @@ int main()
                     
                     case 'c':
                     {
-                        if(PROCESS == modbusState)
-                        {
-                            printf("Reading config registers...\n");
-                            
-                            uint16_t configRegs[50];
-                        
-                            if(-1 == modbus_read_registers(ctx, 0, 50, &configRegs[0]))
-                            {
-                                printf("Failed to read config registers: %s\n", modbus_strerror(errno));
-                            }
-                            else
-                            {
-                                for(int i = 0; i < 50; i++)
-                                {
-                                    printf("%d\t%d\n", i, configRegs[i]);
-                                }
-                                
-                                printf("--------------------------------\n");
-                            }
-                        }
-                        else
-                        {
-                            printf("MODBUS not connected. Cannot read config registers at this time.\n");
-                        }
+                        bPrintConfigRegisters = true;
                     }
+                    break;
+                    
+                    case '\n':
+                    case '\r':
+                        //Ignore whitespace.
                     break;
 
                     default:
