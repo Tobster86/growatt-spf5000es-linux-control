@@ -133,6 +133,7 @@ void* modbus_thread(void* arg)
                 if(-1 == modbus_read_input_registers(ctx, 0, INPUT_REGISTER_COUNT, inputRegs) ||
                    -1 == modbus_read_registers(ctx, GW_HREG_CFG_MODE, 1, &nInverterMode))
                 {
+                    printft("Failed to read input registers and config mode via MODBUS.\n");
                     reinit();
                 }
                 else
@@ -319,6 +320,8 @@ void* modbus_thread(void* arg)
 
             default: {}
         }
+        
+        usleep(100000);
     }
 
     return NULL;
@@ -429,22 +432,29 @@ int main()
                     
                     case 'c':
                     {
-                        printf("Reading config registers...\n");
-                        
-                        uint16_t configRegs[100];
-                    
-                        if(-1 == modbus_read_registers(ctx, 0, 99, &configRegs[0]))
+                        if(PROCESS == modbusState)
                         {
-                            printf("Failed to read config registers.\n");
+                            printf("Reading config registers...\n");
+                            
+                            uint16_t configRegs[50];
+                        
+                            if(-1 == modbus_read_registers(ctx, 0, 50, &configRegs[0]))
+                            {
+                                printf("Failed to read config registers.\n");
+                            }
+                            else
+                            {
+                                for(int i = 0; i < 50; i++)
+                                {
+                                    printf("%d\t%d\n", i, configRegs[i]);
+                                }
+                                
+                                printf("--------------------------------\n");
+                            }
                         }
                         else
                         {
-                            for(int i = 0; i < 100; i++)
-                            {
-                                printf("%d\t%d\n", i, configRegs[i]);
-                            }
-                            
-                            printf("--------------------------------\n");
+                            printf("MODBUS not connected. Cannot read config registers at this time.\n");
                         }
                     }
                     break;

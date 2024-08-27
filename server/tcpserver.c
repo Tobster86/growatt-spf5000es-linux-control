@@ -130,6 +130,8 @@ static void *handle_client(void *arg)
         {
             Comms_Receive(&sdcComms, buffer, bytes_received);
         }
+        
+        usleep(10000);
     }
     
     Comms_Deinit(&sdcComms);
@@ -162,6 +164,8 @@ void *handle_server(void *arg)
                 close(client_socket);
             }
         }
+        
+        usleep(10000);
     }
 
     close(server_socket);
