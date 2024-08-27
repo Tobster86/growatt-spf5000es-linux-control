@@ -235,6 +235,7 @@ void* modbus_thread(void* arg)
                                 if(GW_CFG_MODE_BATTS != nInverterMode)
                                 {
                                     write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_BATTS);
+                                    slModeWriteTime = time(NULL);
                                     printft("Wasn't on batts as expected. Rewrote holding register.\n");
                                 }
                             }
@@ -246,13 +247,12 @@ void* modbus_thread(void* arg)
                                 if(GW_CFG_MODE_GRID != nInverterMode)
                                 {
                                     write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_GRID);
+                                    slModeWriteTime = time(NULL);
                                     printft("Wasn't on grid as expected. Rewrote holding register.\n");
                                 }
                             }
                             break;
                         }
-                            
-                        slModeWriteTime = time(NULL);
                     }
                     
                     //Print state changes.
@@ -426,6 +426,28 @@ int main()
                         bManualSwitchToBatts = true;
                     }
                     break;
+                    
+                    case 'c':
+                    {
+                        printf("Reading config registers...\n");
+                        
+                        uint16_t configRegs[100];
+                    
+                        if(-1 == modbus_read_registers(ctx, 0, 99, &configRegs[0]))
+                        {
+                            printf("Failed to read config registers.\n");
+                        }
+                        else
+                        {
+                            for(int i = 0; i < 100; i++)
+                            {
+                                printf("%d\t%d\n", i, configRegs[i]);
+                            }
+                            
+                            printf("--------------------------------\n");
+                        }
+                    }
+                    break;
 
                     default:
                     {
@@ -434,6 +456,7 @@ int main()
                         printf("s - Print latest status\n");
                         printf("g - Manual grid mode\n");
                         printf("b - Manual battery mode\n");
+                        printf("c - Read & print config registers\n");
                         printf("--------------------------------\n");
                         break;
                     }
