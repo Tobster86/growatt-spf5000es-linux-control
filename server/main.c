@@ -147,7 +147,7 @@ void* modbus_thread(void* arg)
                     
                     uint16_t configRegs[10];
                     
-                    for(int i = 0; i < 100; i++)
+                    for(int i = 0; i < 50; i++)
                     {
                         memset(configRegs, 0, sizeof(configRegs));
                     
@@ -158,7 +158,7 @@ void* modbus_thread(void* arg)
                         }
                         else
                         {
-                            printf("%d %8d %8d %8d %8d %8d %8d %8d %8d %8d %8d\n",
+                            printf("%5d %8d %8d %8d %8d %8d %8d %8d %8d %8d %8d\n",
                                    i * 10,
                                    configRegs[0],
                                    configRegs[1],
