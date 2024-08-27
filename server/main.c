@@ -94,7 +94,7 @@ static void reinit()
     }
 
     modbusState = INIT;
-    sleep(5);
+    sleep(1);
 }
 
 void* modbus_thread(void* arg)
@@ -113,17 +113,26 @@ void* modbus_thread(void* arg)
                 ctx = modbus_new_rtu("/dev/ttyXRUSB0", 9600, 'N', 8, 1);
                 if (ctx == NULL)
                 {
+                    printft("Could not create MODBUS context.\n");
                     reinit();
                 }
-
-                //Connect to the MODBUS slave (slave ID 1)
-                modbus_set_slave(ctx, 1);
-                if (modbus_connect(ctx) == -1)
+                else
                 {
-                    reinit();
+                    //Connect to the MODBUS slave (slave ID 1)
+                    sleep(1);
+                    modbus_set_slave(ctx, 1);
+                    if (modbus_connect(ctx) == -1)
+                    {
+                        printft("Could not connect MODBUS slave.\n");
+                        reinit();
+                    }
+                    else
+                    {
+                        printft("MODBUS initialised. Going to processing.\n");
+                    }
                 }
                 
-                printft("MODBUS initialised. Going to processing.\n");
+                sleep(1);
             }
             break;
 
@@ -440,7 +449,7 @@ int main()
                         
                             if(-1 == modbus_read_registers(ctx, 0, 50, &configRegs[0]))
                             {
-                                printf("Failed to read config registers.\n");
+                                printf("Failed to read config registers: %s\n", modbus_strerror(errno));
                             }
                             else
                             {
