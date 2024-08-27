@@ -147,7 +147,7 @@ void* modbus_thread(void* arg)
                     
                     uint16_t configRegs[10];
                     
-                    for(int i = 0; i < 50; i++)
+                    for(int i = 0; i < 36; i++)
                     {
                         memset(configRegs, 0, sizeof(configRegs));
                     
