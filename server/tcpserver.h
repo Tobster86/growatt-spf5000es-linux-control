@@ -14,4 +14,9 @@ bool tcpserver_init();
  */
 void tcpserver_deinit();
 
+// Callbacks.
+extern void _tcpserver_GetStatus();
+extern void _tcpserver_SetBatts();
+extern void _tcpserver_SetGrid();
+
 #endif

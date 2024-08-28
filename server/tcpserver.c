@@ -39,20 +39,20 @@ void commandReceived_callback(struct sdfComms* psdcComms, uint16_t nCommandID)
         {
             uint32_t lLength;
             uint8_t* pStatus;
-            GetStatus(&pStatus, &lLength);
+            _tcpserver_GetStatus(&pStatus, &lLength);
             Comms_SendObject(psdcComms, OBJECT_STATUS, lLength, pStatus);
         }
         break;
         
         case COMMAND_REQUEST_GRID:
         {
-            SetGrid();
+            _tcpserver_SetGrid();
         }
         break;
         
         case COMMAND_REQUEST_BATTS:
         {
-            SetBatts();
+            _tcpserver_SetBatts();
         }
         break;
     

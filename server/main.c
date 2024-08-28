@@ -42,7 +42,31 @@ uint16_t nLastInverterMode = 0xFFFF;
 uint16_t nLastSystemState = 0xFFFF;
 uint16_t nLastInverterState = 0xFFFF;
 
-void printft(const char* format, ...)
+static void printft(const char* format, ...);
+
+//Callbacks.
+void _tcpserver_GetStatus(uint8_t** ppStatus, uint32_t* pLength)
+{
+    *ppStatus = (uint8_t*)&status;
+    *pLength = sizeof(struct SystemStatus);
+}
+
+void _tcpserver_SetBatts()
+{
+    printft("Remote user requested switch to batts.\n");
+    bManualSwitchToGrid = false;
+    bManualSwitchToBatts = true;
+}
+
+void _tcpserver_SetGrid()
+{
+    printft("Remote user requested switch to grid.\n");
+    bManualSwitchToGrid = true;
+    bManualSwitchToBatts = false;
+}
+
+//Local functions.
+static void printft(const char* format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -50,7 +74,7 @@ void printft(const char* format, ...)
     // Get the current time
     time_t rawtime;
     struct tm* timeinfo;
-    char timestamp[20]; // Adjust the size as needed
+    char timestamp[20];
 
     time(&rawtime);
     timeinfo = localtime(&rawtime);
@@ -61,26 +85,6 @@ void printft(const char* format, ...)
     vprintf(format, args);
 
     va_end(args);
-}
-
-void GetStatus(uint8_t** ppStatus, uint32_t* pLength)
-{
-    *ppStatus = (uint8_t*)&status;
-    *pLength = sizeof(struct SystemStatus);
-}
-
-void SetBatts()
-{
-    printft("Remote user requested switch to batts.\n");
-    bManualSwitchToGrid = false;
-    bManualSwitchToBatts = true;
-}
-
-void SetGrid()
-{
-    printft("Remote user requested switch to grid.\n");
-    bManualSwitchToGrid = true;
-    bManualSwitchToBatts = false;
 }
 
 static void reinit()
@@ -96,6 +100,102 @@ static void reinit()
 
     modbusState = INIT;
     sleep(1);
+}
+
+static void SetOvernightAmps()
+{
+    if(modbus_write_register(ctx, GW_HREG_MAX_UTIL_AMPS, GW_CFG_UTIL_AMPS_MOD) < 0)
+    {
+        printft("Failed to write steady util charging amps to config register: %s\n", modbus_strerror(errno));
+        reinit();
+    }
+}
+
+static void SetBoostAmps()
+{
+    if(modbus_write_register(ctx, GW_HREG_MAX_UTIL_AMPS, GW_CFG_UTIL_AMPS_MAX) < 0)
+    {
+        printft("Failed to write max util charging amps to config register: %s\n", modbus_strerror(errno));
+        reinit();
+    }
+}
+
+static void DisallowOffPeakCharging()
+{
+    if(modbus_write_register(ctx, GW_HREG_UTIL_END_HOUR, GW_CFG_UTIL_TIME_OFFPEAK) < 0)
+    {
+        printft("Failed to write off-peak only charging config register: %s\n", modbus_strerror(errno));
+        reinit();
+    }
+}
+
+static void AllowOffPeakCharging()
+{
+    if(modbus_write_register(ctx, GW_HREG_UTIL_END_HOUR, GW_CFG_UTIL_TIME_ANY_TIME) < 0)
+    {
+        printft("Failed to write any time charging config register: %s\n", modbus_strerror(errno));
+        reinit();
+    }
+}
+
+static void SwitchToBypass()
+{
+    status.nSystemState = SYSTEM_STATE_BYPASS;
+    slModeWriteTime = time(NULL);
+    
+    if(modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_GRID) < 0)
+    {
+        printft("Failed to write grid mode (bypass) to config register: %s\n", modbus_strerror(errno));
+        reinit();
+    }
+    
+    //Enable the inverter's utility charging time limits to prevent unwanted charging.
+    DisallowOffPeakCharging();
+}
+
+static void SwitchToPeak()
+{
+    status.nSystemState = SYSTEM_STATE_PEAK;
+    slModeWriteTime = time(NULL);
+    
+    if(modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_BATTS) < 0)
+    {
+        printft("Failed to write batt mode (peak) to config register: %s\n", modbus_strerror(errno));
+        reinit();
+    }
+    
+    //Enable the inverter's utility charging time limits to prevent unwanted charging.
+    DisallowOffPeakCharging();
+}
+
+static void SwitchToOffPeak()
+{
+    status.nSystemState = SYSTEM_STATE_OFF_PEAK;
+    slModeWriteTime = time(NULL);
+    
+    if(modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_GRID) < 0)
+    {
+        printft("Failed to write grid mode (off peak) to config register: %s\n", modbus_strerror(errno));
+        reinit();
+    }
+    
+    //Disable the inverter's utility charging time limits to take advantage of the full off-peak.
+    AllowOffPeakCharging();
+}
+
+static void SwitchToBoost()
+{
+    status.nSystemState = SYSTEM_STATE_BOOST;
+    slModeWriteTime = time(NULL);
+    
+    if(modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_GRID) < 0)
+    {
+        printft("Failed to write grid mode (boost) to config register: %s\n", modbus_strerror(errno));
+        reinit();
+    }
+    
+    //Disable the inverter's utility charging time limits to allow any time charging.
+    AllowOffPeakCharging();
 }
 
 void* modbus_thread(void* arg)
@@ -184,9 +284,7 @@ void* modbus_thread(void* arg)
                     reinit();
                 }
                 else
-                {
-                    int write_rc = 0;
-                
+                {                
                     //Get the time.
                     time_t rawtime;
                     struct tm* timeinfo;
@@ -233,9 +331,7 @@ void* modbus_thread(void* arg)
                     if(SYSTEM_STATE_PEAK == status.nSystemState && bManualSwitchToGrid)
                     {
                         bManualSwitchToGrid = false;
-                        status.nSystemState = SYSTEM_STATE_BYPASS;
-                        write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_GRID);
-                        slModeWriteTime = time(NULL);
+                        SwitchToBypass();
                         printft("Switched to grid due to override.\n");
                     }
                     
@@ -248,9 +344,7 @@ void* modbus_thread(void* arg)
                         //Switch to peak if off-peak?
                         if(SYSTEM_STATE_OFF_PEAK == status.nSystemState)
                         {
-                            status.nSystemState = SYSTEM_STATE_PEAK;
-                            write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_BATTS);
-                            slModeWriteTime = time(NULL);
+                            SwitchToPeak();
                             printft("Switched to peak.\n");
                         }
                     }
@@ -259,9 +353,7 @@ void* modbus_thread(void* arg)
                         //Switch to off-peak if peak/bypassed?
                         if(SYSTEM_STATE_OFF_PEAK != status.nSystemState)
                         {
-                            status.nSystemState = SYSTEM_STATE_OFF_PEAK;
-                            write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_GRID);
-                            slModeWriteTime = time(NULL);
+                            SwitchToOffPeak();
                             printft("Switched to off-peak.\n");
                         }
                     }
@@ -270,9 +362,7 @@ void* modbus_thread(void* arg)
                     if(SYSTEM_STATE_BYPASS == status.nSystemState && bManualSwitchToBatts)
                     {
                         bManualSwitchToBatts = false;
-                        status.nSystemState = SYSTEM_STATE_PEAK;
-                        write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_BATTS);
-                        slModeWriteTime = time(NULL);
+                        SwitchToPeak();
                         printft("Switched to batts due to override.\n");
                     }
                     
@@ -285,20 +375,27 @@ void* modbus_thread(void* arg)
                             {
                                 if(GW_CFG_MODE_BATTS != nInverterMode)
                                 {
-                                    write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_BATTS);
-                                    slModeWriteTime = time(NULL);
+                                    SwitchToPeak();
                                     printft("Wasn't on batts as expected. Rewrote holding register.\n");
                                 }
                             }
                             break;
                             
                             case SYSTEM_STATE_BYPASS:
+                            {
+                                if(GW_CFG_MODE_GRID != nInverterMode)
+                                {
+                                    SwitchToBypass();
+                                    printft("Wasn't on grid as expected. Rewrote holding register.\n");
+                                }
+                            }
+                            break;
+                            
                             case SYSTEM_STATE_OFF_PEAK:
                             {
                                 if(GW_CFG_MODE_GRID != nInverterMode)
                                 {
-                                    write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_GRID);
-                                    slModeWriteTime = time(NULL);
+                                    SwitchToOffPeak();
                                     printft("Wasn't on grid as expected. Rewrote holding register.\n");
                                 }
                             }
@@ -343,12 +440,6 @@ void* modbus_thread(void* arg)
                             printf("UNKNOWN (%d)\n", status.nInverterState);
                             
                         nLastInverterState = status.nInverterState;
-                    }
-                    
-                    if(write_rc < 0)
-                    {
-                        printft("A holding register write failed.\n");
-                        reinit();
                     }
                 }
             }
