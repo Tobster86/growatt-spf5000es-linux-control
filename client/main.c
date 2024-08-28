@@ -71,12 +71,12 @@ void ReceiveStatus(uint8_t* pStatus, uint32_t lLength)
     //Determine if we should request a state change.
     switch(nSwitchRequest)
     {
-        case SYSTEM_STATE_DAY:
+        case SYSTEM_STATE_PEAK:
         {
-            //Cancel any request if it's in day (battery) mode or night (grid) mode.
-            if(SYSTEM_STATE_DAY == status.nSystemState || SYSTEM_STATE_NIGHT == status.nSystemState)
+            //Cancel any request if it's in peak (battery) mode or off-peak (grid) mode.
+            if(SYSTEM_STATE_PEAK == status.nSystemState || SYSTEM_STATE_OFF_PEAK == status.nSystemState)
             {
-                printf("Cancelling batt switch request as it's already on batts/night.\n");
+                printf("Cancelling batt switch request as it's already on batts/off-peak.\n");
                 nSwitchRequest = SYSTEM_STATE_NO_CHANGE;
             }
             else
@@ -90,10 +90,10 @@ void ReceiveStatus(uint8_t* pStatus, uint32_t lLength)
         
         case SYSTEM_STATE_BYPASS:
         {
-            //Cancel any request if it's in bypass (grid) mode or night (grid) mode.
-            if(SYSTEM_STATE_BYPASS == status.nSystemState || SYSTEM_STATE_NIGHT == status.nSystemState)
+            //Cancel any request if it's in bypass or off-peak (grid) modes.
+            if(SYSTEM_STATE_BYPASS == status.nSystemState || SYSTEM_STATE_OFF_PEAK == status.nSystemState)
             {
-                printf("Cancelling grid switch request as it's already on grid/night.\n");
+                printf("Cancelling grid switch request as it's already on grid/off-peak.\n");
                 nSwitchRequest = SYSTEM_STATE_NO_CHANGE;
             }
             else

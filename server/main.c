@@ -230,7 +230,7 @@ void* modbus_thread(void* arg)
                     status.nInvFanspeed = inputRegs[INV_FANSPEED];
                 
                     //Manual grid switching.
-                    if(SYSTEM_STATE_DAY == status.nSystemState && bManualSwitchToGrid)
+                    if(SYSTEM_STATE_PEAK == status.nSystemState && bManualSwitchToGrid)
                     {
                         bManualSwitchToGrid = false;
                         status.nSystemState = SYSTEM_STATE_BYPASS;
@@ -239,27 +239,30 @@ void* modbus_thread(void* arg)
                         printft("Switched to grid due to override.\n");
                     }
                     
-                    //Day/night switching.
-                    if ((lHour > 5 || (lHour == 5 && lMin >= 30)) && (lHour < 23 || (lHour == 23 && lMin <= 30)))
+                    //Peak/off-peak switching.
+                    if ((lHour > SYSTEM_END_OFF_PEAK_H ||
+                         (lHour == SYSTEM_END_OFF_PEAK_H && lMin >= SYSTEM_END_OFF_PEAK_M)) &&
+                        (lHour < SYSTEM_START_OFF_PEAK_H ||
+                         (lHour == SYSTEM_START_OFF_PEAK_H && lMin <= SYSTEM_START_OFF_PEAK_M)))
                     {
-                        //Switch to day if night?
-                        if(SYSTEM_STATE_NIGHT == status.nSystemState)
+                        //Switch to peak if off-peak?
+                        if(SYSTEM_STATE_OFF_PEAK == status.nSystemState)
                         {
-                            status.nSystemState = SYSTEM_STATE_DAY;
+                            status.nSystemState = SYSTEM_STATE_PEAK;
                             write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_BATTS);
                             slModeWriteTime = time(NULL);
-                            printft("Switched to day.\n");
+                            printft("Switched to peak.\n");
                         }
                     }
                     else
                     {
-                        //Switch to night if day/bypassed?
-                        if(SYSTEM_STATE_NIGHT != status.nSystemState)
+                        //Switch to off-peak if peak/bypassed?
+                        if(SYSTEM_STATE_OFF_PEAK != status.nSystemState)
                         {
-                            status.nSystemState = SYSTEM_STATE_NIGHT;
+                            status.nSystemState = SYSTEM_STATE_OFF_PEAK;
                             write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_GRID);
                             slModeWriteTime = time(NULL);
-                            printft("Switched to night.\n");
+                            printft("Switched to off-peak.\n");
                         }
                     }
                     
@@ -267,7 +270,7 @@ void* modbus_thread(void* arg)
                     if(SYSTEM_STATE_BYPASS == status.nSystemState && bManualSwitchToBatts)
                     {
                         bManualSwitchToBatts = false;
-                        status.nSystemState = SYSTEM_STATE_DAY;
+                        status.nSystemState = SYSTEM_STATE_PEAK;
                         write_rc |= modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_BATTS);
                         slModeWriteTime = time(NULL);
                         printft("Switched to batts due to override.\n");
@@ -278,7 +281,7 @@ void* modbus_thread(void* arg)
                     {
                         switch(status.nSystemState)
                         {
-                            case SYSTEM_STATE_DAY:
+                            case SYSTEM_STATE_PEAK:
                             {
                                 if(GW_CFG_MODE_BATTS != nInverterMode)
                                 {
@@ -290,7 +293,7 @@ void* modbus_thread(void* arg)
                             break;
                             
                             case SYSTEM_STATE_BYPASS:
-                            case SYSTEM_STATE_NIGHT:
+                            case SYSTEM_STATE_OFF_PEAK:
                             {
                                 if(GW_CFG_MODE_GRID != nInverterMode)
                                 {
@@ -322,9 +325,9 @@ void* modbus_thread(void* arg)
                         printft("nSystemState changed to ");
                         switch(status.nSystemState)
                         {
-                            case SYSTEM_STATE_DAY: printf("DAY\n"); break;
+                            case SYSTEM_STATE_PEAK: printf("PEAK\n"); break;
                             case SYSTEM_STATE_BYPASS: printf("BYPASS\n"); break;
-                            case SYSTEM_STATE_NIGHT: printf("NIGHT\n"); break;
+                            case SYSTEM_STATE_OFF_PEAK: printf("OFF-PEAK\n"); break;
                             default: printf("GOD KNOWS! (%d)\n", status.nSystemState); break;
                         }
                 
@@ -410,9 +413,9 @@ int main()
                         
                         switch(status.nSystemState)
                         {
-                            case SYSTEM_STATE_DAY: printf("nSystemState\tDAY\n"); break;
+                            case SYSTEM_STATE_PEAK: printf("nSystemState\tPEAK\n"); break;
                             case SYSTEM_STATE_BYPASS: printf("nSystemState\tBYPASS\n"); break;
-                            case SYSTEM_STATE_NIGHT: printf("nSystemState\tNIGHT\n"); break;
+                            case SYSTEM_STATE_OFF_PEAK: printf("nSystemState\tOFF-PEAK\n"); break;
                             default: printf("nSystemState\tGOD KNOWS! (%d)\n", status.nSystemState); break;
                         }
                         

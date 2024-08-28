@@ -100,7 +100,7 @@ void StatusSwitchWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRend
         case BYPASS:
         case AC_CHG_BYP:
         {
-            if(SYSTEM_STATE_NIGHT == psdcWidget->psdcStatusSwitchWidget->pSystemStatus->nSystemState)
+            if(SYSTEM_STATE_OFF_PEAK == psdcWidget->psdcStatusSwitchWidget->pSystemStatus->nSystemState)
             {
                 //Cheap electricity. Render green pylon.
                 SDL_SetRenderDrawColor(pRenderer, colGood.r, colGood.g, colGood.b, colGood.a);
@@ -155,19 +155,19 @@ void StatusSwitchWidget_Update(struct sdfWidget* psdcWidget, SDL_Renderer* pRend
     SDL_SetRenderDrawColor(pRenderer, 255, 255, 255, 255);
     SDL_RenderFillRect(pRenderer, &rectSwitch);
     
-    if(SYSTEM_STATE_DAY == *psdcWidget->psdcStatusSwitchWidget->pnSwitchRequest ||
+    if(SYSTEM_STATE_PEAK == *psdcWidget->psdcStatusSwitchWidget->pnSwitchRequest ||
        (SYSTEM_STATE_NO_CHANGE == *psdcWidget->psdcStatusSwitchWidget->pnSwitchRequest &&
-        SYSTEM_STATE_DAY == psdcWidget->psdcStatusSwitchWidget->pSystemStatus->nSystemState))
+        SYSTEM_STATE_PEAK == psdcWidget->psdcStatusSwitchWidget->pSystemStatus->nSystemState))
     {
-        //Handle in day (battery) position.
+        //Handle in peak (battery) position.
         SDL_RenderCopy(pRenderer, textureSwitchBatt, NULL, &rectSwitch);
     }
     else if(SYSTEM_STATE_BYPASS == *psdcWidget->psdcStatusSwitchWidget->pnSwitchRequest ||
             (SYSTEM_STATE_NO_CHANGE == *psdcWidget->psdcStatusSwitchWidget->pnSwitchRequest &&
              SYSTEM_STATE_BYPASS == psdcWidget->psdcStatusSwitchWidget->pSystemStatus->nSystemState) ||
-            SYSTEM_STATE_NIGHT == psdcWidget->psdcStatusSwitchWidget->pSystemStatus->nSystemState)
+            SYSTEM_STATE_OFF_PEAK == psdcWidget->psdcStatusSwitchWidget->pSystemStatus->nSystemState)
     {
-        //Handle in night/bypass (grid) position.
+        //Handle in off-peak/bypass (grid) position.
         SDL_RenderCopy(pRenderer, textureSwitchGrid, NULL, &rectSwitch);
     }
 }
@@ -185,13 +185,13 @@ void StatusSwitchWidget_Click(struct sdfWidget* psdcWidget, int lXPos, int lYPos
        lYPos <= psdcWidget->lYPos + psdcWidget->lWidth + (psdcWidget->lHeight - psdcWidget->lWidth))
     {
         //Raise a switch to batt/grid request accordingly.
-        if(SYSTEM_STATE_DAY == psdcWidget->psdcStatusSwitchWidget->pSystemStatus->nSystemState)
+        if(SYSTEM_STATE_PEAK == psdcWidget->psdcStatusSwitchWidget->pSystemStatus->nSystemState)
             *psdcWidget->psdcStatusSwitchWidget->pnSwitchRequest = SYSTEM_STATE_BYPASS;
         else if(SYSTEM_STATE_BYPASS == psdcWidget->psdcStatusSwitchWidget->pSystemStatus->nSystemState)
-            *psdcWidget->psdcStatusSwitchWidget->pnSwitchRequest = SYSTEM_STATE_DAY;
+            *psdcWidget->psdcStatusSwitchWidget->pnSwitchRequest = SYSTEM_STATE_PEAK;
 
         printf("User tapped the batt/grid switch.\n");
-        //Note: Ignore if we're on night mode. Also ignore further user inputs until the system has responded.
+        //Note: Ignore if we're on off-peak mode. Also ignore further user inputs until the system has responded.
     }
 }
 

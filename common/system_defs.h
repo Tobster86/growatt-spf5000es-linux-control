@@ -4,17 +4,17 @@
 
 #include <stdint.h>
 
-#define SYSTEM_NIGHT_H  23
-#define SYSTEM_NIGHT_M  30
-#define SYSTEM_DAY_H    5
-#define SYSTEM_DAY_M    30
+#define SYSTEM_START_OFF_PEAK_H  23
+#define SYSTEM_START_OFF_PEAK_M  30
+#define SYSTEM_END_OFF_PEAK_H    5
+#define SYSTEM_END_OFF_PEAK_M    30
 
 #define CHECK_MODE_TIMEOUT          10   //Number of seconds to check the mode after changing it.
 
 #define SYSTEM_STATE_NO_CHANGE 0xFFFF /* Placeholder for clients not requesting a change. */
-#define SYSTEM_STATE_DAY       0      /* Running on batteries */
+#define SYSTEM_STATE_PEAK      0      /* Running on batteries */
 #define SYSTEM_STATE_BYPASS    1      /* Temporarily grid-switched */
-#define SYSTEM_STATE_NIGHT     2      /* Grid-switched and charging batteries */
+#define SYSTEM_STATE_OFF_PEAK  2      /* Grid-switched and charging batteries */
 
 struct SystemStatus
 {
