@@ -17,7 +17,7 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="3,1">
+   <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,0">
     <item>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>

@@ -51,7 +51,8 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
     MainWindow w(nullptr, &status);
     mainWindow = &w;
-    w.show();
+    //w.show();
+    w.showFullScreen();
 
     // Create a thread
     QThread workerThread;
