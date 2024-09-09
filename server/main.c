@@ -34,6 +34,8 @@ modbus_t *ctx;
 
 struct SystemStatus status;
 uint16_t nInverterMode;
+uint16_t nChargeAmps;
+uint16_t nEndHour;
 bool bManualSwitchToGrid = false;
 bool bManualSwitchToBatts = false;
 bool bManualSwitchToBoost = false;
@@ -137,7 +139,7 @@ static void SetBoostAmps()
     usleep(100000);
 }
 
-static void DisallowOffPeakCharging()
+static void LimitChargingTimes()
 {
     if(modbus_write_register(ctx, GW_HREG_UTIL_END_HOUR, GW_CFG_UTIL_TIME_OFFPEAK) < 0)
     {
@@ -148,7 +150,7 @@ static void DisallowOffPeakCharging()
     usleep(100000);
 }
 
-static void AllowOffPeakCharging()
+static void UnlimitChargingTimes()
 {
     if(modbus_write_register(ctx, GW_HREG_UTIL_END_HOUR, GW_CFG_UTIL_TIME_ANY_TIME) < 0)
     {
@@ -173,7 +175,7 @@ static void SwitchToBypass()
     usleep(100000);
     
     //Enable the inverter's utility charging time limits to prevent unwanted charging.
-    DisallowOffPeakCharging();
+    LimitChargingTimes();
 }
 
 static void SwitchToPeak()
@@ -190,7 +192,7 @@ static void SwitchToPeak()
     usleep(100000);
     
     //Enable the inverter's utility charging time limits to prevent unwanted charging.
-    DisallowOffPeakCharging();
+    LimitChargingTimes();
 }
 
 static void SwitchToOffPeak()
@@ -207,7 +209,7 @@ static void SwitchToOffPeak()
     usleep(100000);
     
     //Disable the inverter's utility charging time limits to take advantage of the full off-peak.
-    AllowOffPeakCharging();
+    UnlimitChargingTimes();
     
     //Set overnight (load balancing) amps.
     SetOvernightAmps();
@@ -227,7 +229,7 @@ static void SwitchToBoost()
     usleep(100000);
     
     //Disable the inverter's utility charging time limits to allow any time charging.
-    AllowOffPeakCharging();
+    UnlimitChargingTimes();
     
     //Set boost amps.
     SetBoostAmps();
@@ -314,11 +316,17 @@ void* modbus_thread(void* arg)
                 //Read input registers and holding register (inverter mode).
                 int inputRegRead = modbus_read_input_registers(ctx, 0, INPUT_REGISTER_COUNT, inputRegs);
                 usleep(10000);
-                int holdingRegRead = modbus_read_registers(ctx, GW_HREG_CFG_MODE, 1, &nInverterMode);
+                int holdingRegRead1 = modbus_read_registers(ctx, GW_HREG_CFG_MODE, 1, &nInverterMode);
+                usleep(10000);
+                int holdingRegRead2 = modbus_read_registers(ctx, GW_HREG_MAX_UTIL_AMPS, 1, &nChargeAmps);
+                usleep(10000);
+                int holdingRegRead3 = modbus_read_registers(ctx, GW_HREG_UTIL_END_HOUR, 1, &nEndHour);
                 usleep(10000);
                 
                 if(-1 == inputRegRead ||
-                   -1 == holdingRegRead )
+                   -1 == holdingRegRead1 ||
+                   -1 == holdingRegRead2 ||
+                   -1 == holdingRegRead3 )
                 {
                     printft("Failed to read input registers and config mode via MODBUS.\n");
                     reinit();
@@ -430,6 +438,12 @@ void* modbus_thread(void* arg)
                                     SwitchToPeak();
                                     printft("Wasn't on batts as expected. Rewrote holding register.\n");
                                 }
+                                
+                                if(GW_CFG_UTIL_TIME_OFFPEAK != nEndHour)
+                                {
+                                    LimitChargingTimes();
+                                    printft("Charging times not limited as expected. Rewrote holding register.\n");
+                                }
                             }
                             break;
                             
@@ -439,6 +453,12 @@ void* modbus_thread(void* arg)
                                 {
                                     SwitchToBypass();
                                     printft("Wasn't on grid as expected. Rewrote holding register.\n");
+                                }
+                                
+                                if(GW_CFG_UTIL_TIME_OFFPEAK != nEndHour)
+                                {
+                                    LimitChargingTimes();
+                                    printft("Charging times not limited as expected. Rewrote holding register.\n");
                                 }
                             }
                             break;
@@ -450,6 +470,18 @@ void* modbus_thread(void* arg)
                                     SwitchToOffPeak();
                                     printft("Wasn't on grid as expected. Rewrote holding register.\n");
                                 }
+                                
+                                if(GW_CFG_UTIL_TIME_ANY_TIME != nEndHour)
+                                {
+                                    UnlimitChargingTimes();
+                                    printft("Charging times not unlimited as expected. Rewrote holding register.\n");
+                                }
+                                
+                                if(GW_CFG_UTIL_AMPS_MOD != nChargeAmps)
+                                {
+                                    SetOvernightAmps();
+                                    printft("Charging amps not moderate as expected. Rewrote holding register.\n");
+                                }
                             }
                             break;
                             
@@ -459,6 +491,18 @@ void* modbus_thread(void* arg)
                                 {
                                     SwitchToBoost();
                                     printft("Wasn't on boost as expected. Rewrote holding register.\n");
+                                }
+                                
+                                if(GW_CFG_UTIL_TIME_ANY_TIME != nEndHour)
+                                {
+                                    UnlimitChargingTimes();
+                                    printft("Charging times not unlimited as expected. Rewrote holding register.\n");
+                                }
+                                
+                                if(GW_CFG_UTIL_AMPS_MAX != nChargeAmps)
+                                {
+                                    SetBoostAmps();
+                                    printft("Charging amps not max as expected. Rewrote holding register.\n");
                                 }
                             }
                             break;
