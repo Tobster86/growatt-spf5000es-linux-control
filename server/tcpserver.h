@@ -18,5 +18,6 @@ void tcpserver_deinit();
 extern void _tcpserver_GetStatus();
 extern void _tcpserver_SetBatts();
 extern void _tcpserver_SetGrid();
+extern void _tcpserver_SetBoost();
 
 #endif

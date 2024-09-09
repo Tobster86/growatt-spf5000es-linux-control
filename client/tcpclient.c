@@ -42,7 +42,7 @@ void objectReceived_callback(struct sdfComms* psdcComms, uint16_t nObjectID, uin
     {
         case OBJECT_STATUS:
         {
-            ReceiveStatus(pcData, nLength);
+            _tcpclient_ReceiveStatus(pcData, nLength);
         }
         break;
     

@@ -36,6 +36,7 @@ struct SystemStatus status;
 uint16_t nInverterMode;
 bool bManualSwitchToGrid = false;
 bool bManualSwitchToBatts = false;
+bool bManualSwitchToBoost = false;
 int32_t slModeWriteTime;
 
 uint16_t nLastInverterMode = 0xFFFF;
@@ -56,6 +57,7 @@ void _tcpserver_SetBatts()
     printft("Remote user requested switch to batts.\n");
     bManualSwitchToGrid = false;
     bManualSwitchToBatts = true;
+    bManualSwitchToBoost = false;
 }
 
 void _tcpserver_SetGrid()
@@ -63,6 +65,15 @@ void _tcpserver_SetGrid()
     printft("Remote user requested switch to grid.\n");
     bManualSwitchToGrid = true;
     bManualSwitchToBatts = false;
+    bManualSwitchToBoost = false;
+}
+
+void _tcpserver_SetBoost()
+{
+    printft("Remote user requested switch to boost.\n");
+    bManualSwitchToGrid = false;
+    bManualSwitchToBatts = false;
+    bManualSwitchToBoost = true;
 }
 
 //Local functions.
@@ -104,6 +115,8 @@ static void reinit()
 
 static void SetOvernightAmps()
 {
+    //TO DO: Smart amps calculation will happen here.
+
     if(modbus_write_register(ctx, GW_HREG_MAX_UTIL_AMPS, GW_CFG_UTIL_AMPS_MOD) < 0)
     {
         printft("Failed to write steady util charging amps to config register: %s\n", modbus_strerror(errno));
@@ -181,6 +194,9 @@ static void SwitchToOffPeak()
     
     //Disable the inverter's utility charging time limits to take advantage of the full off-peak.
     AllowOffPeakCharging();
+    
+    //Set overnight (load balancing) amps.
+    SetOvernightAmps();
 }
 
 static void SwitchToBoost()
@@ -196,6 +212,9 @@ static void SwitchToBoost()
     
     //Disable the inverter's utility charging time limits to allow any time charging.
     AllowOffPeakCharging();
+    
+    //Set boost amps.
+    SetBoostAmps();
 }
 
 void* modbus_thread(void* arg)
@@ -327,12 +346,32 @@ void* modbus_thread(void* arg)
                     status.nMpptFanspeed = inputRegs[MPPT_FANSPEED];
                     status.nInvFanspeed = inputRegs[INV_FANSPEED];
                 
-                    //Manual grid switching.
-                    if(SYSTEM_STATE_PEAK == status.nSystemState && bManualSwitchToGrid)
+                    //Manual switching.
+                    if(SYSTEM_STATE_OFF_PEAK != status.nSystemState)
                     {
-                        bManualSwitchToGrid = false;
-                        SwitchToBypass();
-                        printft("Switched to grid due to override.\n");
+                        //Grid.
+                        if(bManualSwitchToGrid)
+                        {
+                            bManualSwitchToGrid = false;
+                            SwitchToBypass();
+                            printft("Switched to grid due to override.\n");
+                        }
+                        
+                        //Batts.
+                        if(bManualSwitchToBatts)
+                        {
+                            bManualSwitchToBatts = false;
+                            SwitchToPeak();
+                            printft("Switched to batts due to override.\n");
+                        }
+                        
+                        //Boost.
+                        if(bManualSwitchToBoost)
+                        {
+                            bManualSwitchToBoost = false;
+                            SwitchToBoost();
+                            printft("Switched to boost due to override.\n");
+                        }
                     }
                     
                     //Peak/off-peak switching.
@@ -356,14 +395,6 @@ void* modbus_thread(void* arg)
                             SwitchToOffPeak();
                             printft("Switched to off-peak.\n");
                         }
-                    }
-                    
-                    //Manual batts switching.
-                    if(SYSTEM_STATE_BYPASS == status.nSystemState && bManualSwitchToBatts)
-                    {
-                        bManualSwitchToBatts = false;
-                        SwitchToPeak();
-                        printft("Switched to batts due to override.\n");
                     }
                     
                     //Final state check. (Note: inverter mode is read back from inverter on next pass).
@@ -400,6 +431,16 @@ void* modbus_thread(void* arg)
                                 }
                             }
                             break;
+                            
+                            case SYSTEM_STATE_BOOST:
+                            {
+                                if(GW_CFG_MODE_GRID != nInverterMode)
+                                {
+                                    SwitchToBoost();
+                                    printft("Wasn't on boost as expected. Rewrote holding register.\n");
+                                }
+                            }
+                            break;
                         }
                     }
                     
@@ -425,6 +466,7 @@ void* modbus_thread(void* arg)
                             case SYSTEM_STATE_PEAK: printf("PEAK\n"); break;
                             case SYSTEM_STATE_BYPASS: printf("BYPASS\n"); break;
                             case SYSTEM_STATE_OFF_PEAK: printf("OFF-PEAK\n"); break;
+                            case SYSTEM_STATE_BOOST: printf("BOOST\n"); break;
                             default: printf("GOD KNOWS! (%d)\n", status.nSystemState); break;
                         }
                 
@@ -507,6 +549,7 @@ int main()
                             case SYSTEM_STATE_PEAK: printf("nSystemState\tPEAK\n"); break;
                             case SYSTEM_STATE_BYPASS: printf("nSystemState\tBYPASS\n"); break;
                             case SYSTEM_STATE_OFF_PEAK: printf("nSystemState\tOFF-PEAK\n"); break;
+                            case SYSTEM_STATE_BOOST: printf("nSystemState\tBOOST\n"); break;
                             default: printf("nSystemState\tGOD KNOWS! (%d)\n", status.nSystemState); break;
                         }
                         
@@ -571,6 +614,13 @@ int main()
                     }
                     break;
                     
+                    case 'h':
+                    {
+                        printf("Forcing boost...\n");
+                        bManualSwitchToBoost = true;
+                    }
+                    break;
+                    
                     case 'c':
                     {
                         bPrintConfigRegisters = true;
@@ -589,6 +639,7 @@ int main()
                         printf("s - Print latest status\n");
                         printf("g - Manual grid mode\n");
                         printf("b - Manual battery mode\n");
+                        printf("h - Manual boost mode\n");
                         printf("c - Read & print config registers\n");
                         printf("--------------------------------\n");
                         break;

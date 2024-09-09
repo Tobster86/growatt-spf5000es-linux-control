@@ -55,6 +55,12 @@ void commandReceived_callback(struct sdfComms* psdcComms, uint16_t nCommandID)
             _tcpserver_SetBatts();
         }
         break;
+        
+        case COMMAND_REQUEST_BOOST:
+        {
+            _tcpserver_SetBoost();
+        }
+        break;
     
         default: printf("Client socket %u sent unknown command %u.\n", psdcComms->lID, nCommandID);
     }

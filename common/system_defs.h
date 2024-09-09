@@ -12,9 +12,10 @@
 #define CHECK_MODE_TIMEOUT          10   //Number of seconds to check the mode after changing it.
 
 #define SYSTEM_STATE_NO_CHANGE 0xFFFF /* Placeholder for clients not requesting a change. */
-#define SYSTEM_STATE_PEAK      0      /* Running on batteries */
-#define SYSTEM_STATE_BYPASS    1      /* Temporarily grid-switched */
-#define SYSTEM_STATE_OFF_PEAK  2      /* Grid-switched and charging batteries */
+#define SYSTEM_STATE_PEAK      0      /* Running on batteries during peak time. */
+#define SYSTEM_STATE_BYPASS    1      /* Temporarily grid-switched, not charging, peak time. */
+#define SYSTEM_STATE_OFF_PEAK  2      /* Grid-switched and charging batteries during off-peak. */
+#define SYSTEM_STATE_BOOST     3      /* Temporarily grid-switched, charging batteries, peak time. */
 
 struct SystemStatus
 {

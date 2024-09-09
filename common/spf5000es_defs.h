@@ -20,6 +20,37 @@
 #define GW_CFG_MODE_BATTS   0
 #define GW_CFG_MODE_GRID    2
 
+#define GW_CFG_UTIL_TIME_ANY_TIME 0 //Charging allowed anytime if start & end.
+#define GW_CFG_UTIL_TIME_OFFPEAK  4 //Charging not allowed after 5am if end.
+
+#define GW_CFG_UTIL_AMPS_MAX 80 //Free sessions etc. Smash those amps in!
+#define GW_CFG_UTIL_AMPS_MOD 40 //Off-peak. Steady to help with balancing.
+
+//General docs & knowledge.
+
+/* Growatt SPF ES Util start and end times are respectively on the hour and
+   off the hour. There are no minutes. Via the panel, it's dialled in as four
+   digits (0000 = charge any time, 0004 = charge only from 00:00 - 04:59.
+   To safety-toggle on/off-peak battery charging, GW_HREG_UTIL_START_HOUR
+   should be manually set to 00 via the panel, and GW_HREG_UTIL_END_HOUR
+   can be toggled via MODBUS to 4 (disallow outside off-peak) and 0 (charge
+   any time). */
+
+/* Growatt SPF 5000 ES has maximum total & utility charging currents of 100A
+   and 80A respectively. While everything else in this code will also work
+   with an SPF 3000 ES, the same maxima are 80A and 60A respectively, and
+   if you're using that inverter you'll need to make changes accordingly. */
+   
+/* There are two reasons to adjust the charging amps in this application:
+   1) During "free" or reduced price peak time sessions, we want to cram as
+   much into the batteries in a limited time window as possible, so use max.
+   2) Because most BMSs have passive balancing but few have active balancing,
+   and passive balancing (A) only works during charging and (B) isn't very
+   good, it's desirable to charge as slowly as possible during off-peak while
+   still ensuring a full charge by the end of off-peak, to help with ongoing
+   balancing of the cells.
+   */
+
 enum GwInputRegisters
 {
     STATUS = 0,
