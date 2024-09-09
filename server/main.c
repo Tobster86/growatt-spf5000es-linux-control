@@ -122,6 +122,8 @@ static void SetOvernightAmps()
         printft("Failed to write steady util charging amps to config register: %s\n", modbus_strerror(errno));
         reinit();
     }
+    
+    usleep(100000);
 }
 
 static void SetBoostAmps()
@@ -131,6 +133,8 @@ static void SetBoostAmps()
         printft("Failed to write max util charging amps to config register: %s\n", modbus_strerror(errno));
         reinit();
     }
+    
+    usleep(100000);
 }
 
 static void DisallowOffPeakCharging()
@@ -140,6 +144,8 @@ static void DisallowOffPeakCharging()
         printft("Failed to write off-peak only charging config register: %s\n", modbus_strerror(errno));
         reinit();
     }
+    
+    usleep(100000);
 }
 
 static void AllowOffPeakCharging()
@@ -149,6 +155,8 @@ static void AllowOffPeakCharging()
         printft("Failed to write any time charging config register: %s\n", modbus_strerror(errno));
         reinit();
     }
+    
+    usleep(100000);
 }
 
 static void SwitchToBypass()
@@ -161,6 +169,8 @@ static void SwitchToBypass()
         printft("Failed to write grid mode (bypass) to config register: %s\n", modbus_strerror(errno));
         reinit();
     }
+    
+    usleep(100000);
     
     //Enable the inverter's utility charging time limits to prevent unwanted charging.
     DisallowOffPeakCharging();
@@ -177,6 +187,8 @@ static void SwitchToPeak()
         reinit();
     }
     
+    usleep(100000);
+    
     //Enable the inverter's utility charging time limits to prevent unwanted charging.
     DisallowOffPeakCharging();
 }
@@ -191,6 +203,8 @@ static void SwitchToOffPeak()
         printft("Failed to write grid mode (off peak) to config register: %s\n", modbus_strerror(errno));
         reinit();
     }
+    
+    usleep(100000);
     
     //Disable the inverter's utility charging time limits to take advantage of the full off-peak.
     AllowOffPeakCharging();
@@ -209,6 +223,8 @@ static void SwitchToBoost()
         printft("Failed to write grid mode (boost) to config register: %s\n", modbus_strerror(errno));
         reinit();
     }
+    
+    usleep(100000);
     
     //Disable the inverter's utility charging time limits to allow any time charging.
     AllowOffPeakCharging();
@@ -296,8 +312,13 @@ void* modbus_thread(void* arg)
                 }
             
                 //Read input registers and holding register (inverter mode).
-                if(-1 == modbus_read_input_registers(ctx, 0, INPUT_REGISTER_COUNT, inputRegs) ||
-                   -1 == modbus_read_registers(ctx, GW_HREG_CFG_MODE, 1, &nInverterMode))
+                int inputRegRead = modbus_read_input_registers(ctx, 0, INPUT_REGISTER_COUNT, inputRegs);
+                usleep(10000);
+                int holdingRegRead = modbus_read_registers(ctx, GW_HREG_CFG_MODE, 1, &nInverterMode);
+                usleep(10000);
+                
+                if(-1 == inputRegRead ||
+                   -1 == holdingRegRead )
                 {
                     printft("Failed to read input registers and config mode via MODBUS.\n");
                     reinit();
