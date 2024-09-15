@@ -11,6 +11,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include <sys/stat.h>
+#include <pwd.h>
 
 #include <modbus.h>
 #include <errno.h>
@@ -122,17 +123,26 @@ static void printftlog(const char* filename, const char* format, ...)
     // Print the timestamp and the formatted message
     printf("[%s] ", timestamp);
     vprintf(format, args);
-    
-    // Create the 'logs/' directory if it doesn't exist
+
+    // Get the user's home directory
+    const char* homeDir = getenv("HOME");
+    if (homeDir == NULL) {
+        // Fallback to getpwuid if HOME is not set
+        struct passwd* pw = getpwuid(geteuid());
+        homeDir = pw ? pw->pw_dir : ".";
+    }
+
+    // Create the 'invlogs/' directory in the user's home directory if it doesn't exist
+    char logDir[256];
+    snprintf(logDir, sizeof(logDir), "%s/invlogs", homeDir);
     struct stat st = {0};
-    if (stat("logs", &st) == -1) {
-        mkdir("logs", 0777);  // Create the 'logs/' directory with read/write/execute permissions
+    if (stat(logDir, &st) == -1) {
+        mkdir(logDir, 0755);  // Create the 'invlogs/' directory with read/write/execute permissions
     }
 
     // Construct the full file path
     char filepath[256];
-    strcpy(filepath, "logs/");
-    strcat(filepath, filename);
+    snprintf(filepath, sizeof(filepath), "%s/%s", logDir, filename);
 
     // Open the file for appending, creating it if necessary
     FILE* file = fopen(filepath, "a");
