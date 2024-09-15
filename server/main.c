@@ -126,7 +126,8 @@ static void printftlog(const char* filename, const char* format, ...)
 
     // Get the user's home directory
     const char* homeDir = getenv("HOME");
-    if (homeDir == NULL) {
+    if (homeDir == NULL)
+    {
         // Fallback to getpwuid if HOME is not set
         struct passwd* pw = getpwuid(geteuid());
         homeDir = pw ? pw->pw_dir : ".";
@@ -136,30 +137,45 @@ static void printftlog(const char* filename, const char* format, ...)
     char logDir[256];
     snprintf(logDir, sizeof(logDir), "%s/invlogs", homeDir);
     struct stat st = {0};
-    if (stat(logDir, &st) == -1) {
-        mkdir(logDir, 0755);  // Create the 'invlogs/' directory with read/write/execute permissions
+    if (stat(logDir, &st) == -1)
+    {
+        if (mkdir(logDir, 0755) == -1) {
+            printf("Error: Failed to create directory '%s': %s\n", logDir, strerror(errno));
+            va_end(args);
+            return;
+        }
     }
 
     // Construct the full file path
     char filepath[256];
-    snprintf(filepath, sizeof(filepath), "%s/%s", logDir, filename);
+    if (snprintf(logDir, sizeof(logDir), "%s/invlogs", homeDir) >= sizeof(logDir))
+    {
+        printf("Error: Log directory path is too long\n");
+        va_end(args);
+        return;
+    }
 
     // Open the file for appending, creating it if necessary
     FILE* file = fopen(filepath, "a");
-    if (file != NULL)
+    
+    if (file == NULL)
     {
-        // Print the timestamp to the file
-        fprintf(file, "[%s] ", timestamp);
-        
-        // Write the formatted message to the file
-        va_list args_copy;
-        va_copy(args_copy, args);  // Create a copy of args to reuse
-        vfprintf(file, format, args_copy);
-        va_end(args_copy);
-
-        // Close the file
-        fclose(file);
+        printf("Error: Failed to open file '%s': %s\n", filepath, strerror(errno));
+        va_end(args);
+        return;
     }
+    
+    // Print the timestamp to the file
+    fprintf(file, "[%s] ", timestamp);
+    
+    // Write the formatted message to the file
+    va_list args_copy;
+    va_copy(args_copy, args);  // Create a copy of args to reuse
+    vfprintf(file, format, args_copy);
+    va_end(args_copy);
+
+    // Close the file
+    fclose(file);
 
     va_end(args);
 }
