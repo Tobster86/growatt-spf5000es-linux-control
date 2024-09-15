@@ -120,7 +120,7 @@ static void printftlog(const char* filename, const char* format, ...)
     timeinfo = localtime(&rawtime);
     strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", timeinfo);
 
-    // Print the timestamp and the formatted message
+    // Print the timestamp and the formatted message to the console
     printf("[%s] ", timestamp);
     vprintf(format, args);
 
@@ -148,16 +148,15 @@ static void printftlog(const char* filename, const char* format, ...)
 
     // Construct the full file path
     char filepath[256];
-    if (snprintf(logDir, sizeof(logDir), "%s/invlogs", homeDir) >= sizeof(logDir))
+    if (snprintf(filepath, sizeof(filepath), "%s/%s", logDir, filename) >= sizeof(filepath))
     {
-        printf("Error: Log directory path is too long\n");
+        printf("Error: File path is too long\n");
         va_end(args);
         return;
     }
 
     // Open the file for appending, creating it if necessary
     FILE* file = fopen(filepath, "a");
-    
     if (file == NULL)
     {
         printf("Error: Failed to open file '%s': %s\n", filepath, strerror(errno));
