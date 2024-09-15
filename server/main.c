@@ -10,6 +10,7 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <time.h>
+#include <sys/stat.h>
 
 #include <modbus.h>
 #include <errno.h>
@@ -20,6 +21,8 @@
 
 bool bRunning = true;
 bool bPrintConfigRegisters = false;
+bool bLogging = false;
+bool bDebug = false;
 
 enum ModbusState
 {
@@ -79,6 +82,7 @@ void _tcpserver_SetBoost()
 }
 
 //Local functions.
+//Printf with timestamp.
 static void printft(const char* format, ...)
 {
     va_list args;
@@ -96,6 +100,56 @@ static void printft(const char* format, ...)
     // Print the timestamp and the formatted message
     printf("[%s] ", timestamp);
     vprintf(format, args);
+
+    va_end(args);
+}
+
+//Printf with timestamp and log to file.
+static void printftlog(const char* filename, const char* format, ...)
+{
+    va_list args;
+    va_start(args, format);
+
+    // Get the current time
+    time_t rawtime;
+    struct tm* timeinfo;
+    char timestamp[20];
+
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", timeinfo);
+
+    // Print the timestamp and the formatted message
+    printf("[%s] ", timestamp);
+    vprintf(format, args);
+    
+    // Create the 'logs/' directory if it doesn't exist
+    struct stat st = {0};
+    if (stat("logs", &st) == -1) {
+        mkdir("logs", 0777);  // Create the 'logs/' directory with read/write/execute permissions
+    }
+
+    // Construct the full file path
+    char filepath[256];
+    strcpy(filepath, "logs/");
+    strcat(filepath, filename);
+
+    // Open the file for appending, creating it if necessary
+    FILE* file = fopen(filepath, "a");
+    if (file != NULL)
+    {
+        // Print the timestamp to the file
+        fprintf(file, "[%s] ", timestamp);
+        
+        // Write the formatted message to the file
+        va_list args_copy;
+        va_copy(args_copy, args);  // Create a copy of args to reuse
+        vfprintf(file, format, args_copy);
+        va_end(args_copy);
+
+        // Close the file
+        fclose(file);
+    }
 
     va_end(args);
 }
@@ -332,7 +386,14 @@ void* modbus_thread(void* arg)
                     reinit();
                 }
                 else
-                {                
+                {
+                    if(bDebug)
+                    {
+                        printft("nInverterMode =\t%d.\n");
+                        printft("nChargeAmps =\t%d.\n");
+                        printft("nEndHour =\t%d.\n");
+                    }
+                
                     //Get the time.
                     time_t rawtime;
                     struct tm* timeinfo;
@@ -345,7 +406,6 @@ void* modbus_thread(void* arg)
                     status.nInverterState = inputRegs[STATUS];
                     status.nOutputWatts = inputRegs[OUTPUT_WATTS_L];
                     status.nOutputApppwr = inputRegs[OUTPUT_APPPWR_L];
-                    status.nAcChargeWattsH = inputRegs[AC_CHARGE_WATTS_H];
                     status.nAcChargeWattsL = inputRegs[AC_CHARGE_WATTS_L];
                     status.nBatteryVolts = inputRegs[BATTERY_VOLTS];
                     status.nBusVolts = inputRegs[BUS_VOLTS];
@@ -353,17 +413,13 @@ void* modbus_thread(void* arg)
                     status.nGridFreq = inputRegs[GRID_FREQ];
                     status.nAcOutVolts = inputRegs[AC_OUT_VOLTS];
                     status.nAcOutFreq = inputRegs[AC_OUT_FREQ];
-                    status.nDcOutVolts = inputRegs[DC_OUT_VOLTS];
                     status.nInverterTemp = inputRegs[INVERTER_TEMP];
                     status.nDCDCTemp = inputRegs[DCDC_TEMP];
                     status.nLoadPercent = inputRegs[LOAD_PERCENT];
-                    status.nBattPortVolts = inputRegs[BATT_PORT_VOLTS];
-                    status.nBattBusVolts = inputRegs[BATT_BUS_VOLTS];
                     status.nBuck1Temp = inputRegs[BUCK1_TEMP];
                     status.nBuck2Temp = inputRegs[BUCK2_TEMP];
                     status.nOutputAmps = inputRegs[OUTPUT_AMPS];
                     status.nInverterAmps = inputRegs[INVERTER_AMPS];
-                    status.nAcInputWattsH = inputRegs[AC_INPUT_WATTS_H];
                     status.nAcInputWattsL = inputRegs[AC_INPUT_WATTS_L];
                     status.nAcchgegyToday = inputRegs[ACCHGEGY_TODAY_L];
                     status.nBattuseToday = inputRegs[BATTUSE_TODAY_L];
@@ -372,8 +428,45 @@ void* modbus_thread(void* arg)
                     status.nAcUseWatts = inputRegs[AC_USE_WATTS_L];
                     status.nBattuseWatts = inputRegs[BATTUSE_WATTS_L];
                     status.nBattWatts = inputRegs[BATT_WATTS_L];
-                    status.nMpptFanspeed = inputRegs[MPPT_FANSPEED];
                     status.nInvFanspeed = inputRegs[INV_FANSPEED];
+                    
+                    if(bLogging)
+                    {
+                        static int lLastMin = -1;
+                        
+                        if (lMin % 5 == 0 && lMin != lLastMin)
+                        {
+                            //Log all values to files every five minutes.
+                            printftlog("InverterState", "%d\n", status.nInverterState);
+                            printftlog("OutputWatts", "%d\n", status.nOutputWatts);
+                            printftlog("OutputApppwr", "%d\n", status.nOutputApppwr);
+                            printftlog("AcChargeWattsL", "%d\n", status.nAcChargeWattsL);
+                            printftlog("BatteryVolts", "%d\n", status.nBatteryVolts);
+                            printftlog("BusVolts", "%d\n", status.nBusVolts);
+                            printftlog("GridVolts", "%d\n", status.nGridVolts);
+                            printftlog("GridFreq", "%d\n", status.nGridFreq);
+                            printftlog("AcOutVolts", "%d\n", status.nAcOutVolts);
+                            printftlog("AcOutFreq", "%d\n", status.nAcOutFreq);
+                            printftlog("InverterTemp", "%d\n", status.nInverterTemp);
+                            printftlog("DCDCTemp", "%d\n", status.nDCDCTemp);
+                            printftlog("LoadPercent", "%d\n", status.nLoadPercent);
+                            printftlog("Buck1Temp", "%d\n", status.nBuck1Temp);
+                            printftlog("Buck2Temp", "%d\n", status.nBuck2Temp);
+                            printftlog("OutputAmps", "%d\n", status.nOutputAmps);
+                            printftlog("InverterAmps", "%d\n", status.nInverterAmps);
+                            printftlog("AcInputWattsL", "%d\n", status.nAcInputWattsL);
+                            printftlog("AcchgegyToday", "%d\n", status.nAcchgegyToday);
+                            printftlog("BattuseToday", "%d\n", status.nBattuseToday);
+                            printftlog("AcUseToday", "%d\n", status.nAcUseToday);
+                            printftlog("AcBattchgAmps", "%d\n", status.nAcBattchgAmps);
+                            printftlog("AcUseWatts", "%d\n", status.nAcUseWatts);
+                            printftlog("BattuseWatts", "%d\n", status.nBattuseWatts);
+                            printftlog("BattWatts", "%d\n", status.nBattWatts);
+                            printftlog("InvFanspeed", "%d\n", status.nInvFanspeed);
+                        
+                            lLastMin = lMin;
+                        }
+                    }
                 
                     //Manual switching.
                     if(SYSTEM_STATE_OFF_PEAK != status.nSystemState)
@@ -626,13 +719,10 @@ int main()
                         printf("\n");
                         printf("slModeWriteTime\t%d\n", slModeWriteTime);
                         printf("The actual time\t%ld\n", time(NULL));
-                        printf("slSwitchTime\t%d\n", status.slSwitchTime);
                         
                         printf("\n");
-                        printf("nModbusFPS\t%d\n", status.nModbusFPS);
                         printf("nOutputWatts\t%d\n", status.nOutputWatts);
                         printf("nOutputApppwr\t%d\n", status.nOutputApppwr);
-                        printf("nAcChargeWattsH\t%d\n", status.nAcChargeWattsH);
                         printf("nAcChargeWattsL\t%d\n", status.nAcChargeWattsL);
                         printf("nBatteryVolts\t%d\n", status.nBatteryVolts);
                         printf("nBusVolts\t%d\n", status.nBusVolts);
@@ -640,17 +730,13 @@ int main()
                         printf("nGridFreq\t%d\n", status.nGridFreq);
                         printf("nAcOutVolts\t%d\n", status.nAcOutVolts);
                         printf("nAcOutFreq\t%d\n", status.nAcOutFreq);
-                        printf("nDcOutVolts\t%d\n", status.nDcOutVolts);
                         printf("nInverterTemp\t%d\n", status.nInverterTemp);
                         printf("nDCDCTemp\t%d\n", status.nDCDCTemp);
                         printf("nLoadPercent\t%d\n", status.nLoadPercent);
-                        printf("nBattPortVolts\t%d\n", status.nBattPortVolts);
-                        printf("nBattBusVolts\t%d\n", status.nBattBusVolts);
                         printf("nBuck1Temp\t%d\n", status.nBuck1Temp);
                         printf("nBuck2Temp\t%d\n", status.nBuck2Temp);
                         printf("nOutputAmps\t%d\n", status.nOutputAmps);
                         printf("nInverterAmps\t%d\n", status.nInverterAmps);
-                        printf("nAcInputWattsH\t%d\n", status.nAcInputWattsH);
                         printf("nAcInputWattsL\t%d\n", status.nAcInputWattsL);
                         printf("nAcchgegyToday\t%d\n", status.nAcchgegyToday);
                         printf("nBattuseToday\t%d\n", status.nBattuseToday);
@@ -659,7 +745,6 @@ int main()
                         printf("nAcUseWatts\t%d\n", status.nAcUseWatts);
                         printf("nBattuseWatts\t%d\n", status.nBattuseWatts);
                         printf("nBattWatts\t%d\n", status.nBattWatts);
-                        printf("nMpptFanspeed\t%d\n", status.nMpptFanspeed);
                         printf("nInvFanspeed\t%d\n", status.nInvFanspeed);
                         printf("--------------------\n");
                     }
@@ -692,6 +777,20 @@ int main()
                     }
                     break;
                     
+                    case 'l':
+                    {
+                        bLogging = !bLogging;
+                        printf(bLogging? "Logging\n" : "Stopped logging\n");
+                    }
+                    break;
+                    
+                    case 'd':
+                    {
+                        bDebug = !bDebug;
+                        printf(bDebug? "More debug\n" : "Stopped more debug\n");
+                    }
+                    break;
+                    
                     case '\n':
                     case '\r':
                         //Ignore whitespace.
@@ -706,6 +805,8 @@ int main()
                         printf("b - Manual battery mode\n");
                         printf("h - Manual boost mode\n");
                         printf("c - Read & print config registers\n");
+                        printf("l - toggle logging\n");
+                        printf("d - toggle more debug\n");
                         printf("--------------------------------\n");
                         break;
                     }

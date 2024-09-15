@@ -9,14 +9,38 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>727</width>
-    <height>538</height>
+    <width>800</width>
+    <height>480</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>800</width>
+    <height>480</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>8000</width>
+    <height>4800</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
+   <property name="maximumSize">
+    <size>
+     <width>800</width>
+     <height>480</height>
+    </size>
+   </property>
    <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,0">
     <item>
      <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -115,34 +139,10 @@
         <item>
          <layout class="QVBoxLayout" name="verticalLayout">
           <item>
-           <widget class="QLabel" name="lbl01">
-            <property name="font">
-             <font>
-              <pointsize>8</pointsize>
-             </font>
-            </property>
-            <property name="text">
-             <string>TextLabel</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="lbl14">
-            <property name="font">
-             <font>
-              <pointsize>8</pointsize>
-             </font>
-            </property>
-            <property name="text">
-             <string>TextLabel</string>
-            </property>
-           </widget>
-          </item>
-          <item>
            <widget class="QLabel" name="lbl07">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -154,7 +154,7 @@
            <widget class="QLabel" name="lbl10">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -166,7 +166,7 @@
            <widget class="QLabel" name="lbl15">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -178,7 +178,7 @@
            <widget class="QLabel" name="lbl05">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -190,19 +190,7 @@
            <widget class="QLabel" name="lbl04">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
-             </font>
-            </property>
-            <property name="text">
-             <string>TextLabel</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="lbl02">
-            <property name="font">
-             <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -214,7 +202,7 @@
            <widget class="QLabel" name="lbl11">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -226,7 +214,7 @@
            <widget class="QLabel" name="lbl13">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -238,7 +226,7 @@
            <widget class="QLabel" name="lbl03">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -250,7 +238,7 @@
            <widget class="QLabel" name="lbl16">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -262,7 +250,7 @@
            <widget class="QLabel" name="lbl08">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -274,7 +262,7 @@
            <widget class="QLabel" name="lbl09">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -286,7 +274,7 @@
            <widget class="QLabel" name="lbl12">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -298,19 +286,7 @@
            <widget class="QLabel" name="lbl17">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
-             </font>
-            </property>
-            <property name="text">
-             <string>TextLabel</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="lbl06">
-            <property name="font">
-             <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -323,34 +299,10 @@
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_3">
           <item>
-           <widget class="QLabel" name="lbl18">
-            <property name="font">
-             <font>
-              <pointsize>8</pointsize>
-             </font>
-            </property>
-            <property name="text">
-             <string>TextLabel</string>
-            </property>
-           </widget>
-          </item>
-          <item>
            <widget class="QLabel" name="lbl20">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
-             </font>
-            </property>
-            <property name="text">
-             <string>TextLabel</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="lbl19">
-            <property name="font">
-             <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -362,7 +314,7 @@
            <widget class="QLabel" name="lbl22">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -374,19 +326,7 @@
            <widget class="QLabel" name="lbl28">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
-             </font>
-            </property>
-            <property name="text">
-             <string>TextLabel</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="lbl24">
-            <property name="font">
-             <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -398,7 +338,7 @@
            <widget class="QLabel" name="lbl26">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -410,19 +350,7 @@
            <widget class="QLabel" name="lbl27">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
-             </font>
-            </property>
-            <property name="text">
-             <string>TextLabel</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="lbl33">
-            <property name="font">
-             <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -434,7 +362,7 @@
            <widget class="QLabel" name="lbl30">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -446,7 +374,7 @@
            <widget class="QLabel" name="lbl31">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -458,7 +386,7 @@
            <widget class="QLabel" name="lbl34">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -470,7 +398,7 @@
            <widget class="QLabel" name="lbl32">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -482,7 +410,7 @@
            <widget class="QLabel" name="lbl25">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -494,7 +422,7 @@
            <widget class="QLabel" name="lbl29">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -506,7 +434,7 @@
            <widget class="QLabel" name="lbl23">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">
@@ -518,7 +446,7 @@
            <widget class="QLabel" name="lbl21">
             <property name="font">
              <font>
-              <pointsize>8</pointsize>
+              <pointsize>12</pointsize>
              </font>
             </property>
             <property name="text">

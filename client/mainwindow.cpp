@@ -127,12 +127,9 @@ void MainWindow::updateStatus()
         break;
     }
 
-    ui->lbl01->setText(QString("Modbus FPS: %1 FPS").arg(status->nModbusFPS));
-    ui->lbl02->setText(QString("Switch Time: %1 s").arg(status->slSwitchTime));
     ui->lbl03->setText(QString("Inverter State: %1").arg(status->nInverterState));
     ui->lbl04->setText(QString("Output Watts: %1 W").arg(status->nOutputWatts / 10.0));
     ui->lbl05->setText(QString("Output Apparent Power: %1 VA").arg(status->nOutputApppwr / 10.0));
-    ui->lbl06->setText(QString("AC Charge Watts (High): %1 W").arg(status->nAcChargeWattsH / 10.0));
     ui->lbl07->setText(QString("AC Charge Watts (Low): %1 W").arg(status->nAcChargeWattsL / 10.0));
     ui->lbl08->setText(QString("Battery Volts: %1 V").arg(status->nBatteryVolts / 100.0));
     ui->lbl09->setText(QString("Bus Volts: %1 V").arg(status->nBusVolts / 100.0));
@@ -140,17 +137,13 @@ void MainWindow::updateStatus()
     ui->lbl11->setText(QString("Grid Frequency: %1 Hz").arg(status->nGridFreq / 100.0));
     ui->lbl12->setText(QString("AC Output Volts: %1 V").arg(status->nAcOutVolts / 10.0));
     ui->lbl13->setText(QString("AC Output Frequency: %1 Hz").arg(status->nAcOutFreq / 100.0));
-    ui->lbl14->setText(QString("DC Output Volts: %1 V").arg(status->nDcOutVolts / 10.0));
     ui->lbl15->setText(QString("Inverter Temperature: %1 °C").arg(status->nInverterTemp / 10.0));
     ui->lbl16->setText(QString("DCDC Temperature: %1 °C").arg(status->nDCDCTemp / 10.0));
     ui->lbl17->setText(QString("Load Percent: %1%").arg(status->nLoadPercent / 10.0));
-    ui->lbl18->setText(QString("Battery Port Volts: %1 V").arg(status->nBattPortVolts / 10.0));
-    ui->lbl19->setText(QString("Battery Bus Volts: %1 V").arg(status->nBattBusVolts / 10.0));
     ui->lbl20->setText(QString("Buck 1 Temperature: %1 °C").arg(status->nBuck1Temp / 10.0));
     ui->lbl21->setText(QString("Buck 2 Temperature: %1 °C").arg(status->nBuck2Temp / 10.0));
     ui->lbl22->setText(QString("Output Amps: %1 A").arg(status->nOutputAmps / 10.0));
     ui->lbl23->setText(QString("Inverter Amps: %1 A").arg(status->nInverterAmps / 10.0));
-    ui->lbl24->setText(QString("AC Input Watts (High): %1 W").arg(status->nAcInputWattsH / 10.0));
     ui->lbl25->setText(QString("AC Input Watts (Low): %1 W").arg(status->nAcInputWattsL / 10.0));
     ui->lbl26->setText(QString("AC Charge Energy Today: %1 kWh").arg(status->nAcchgegyToday / 10.0));
     ui->lbl27->setText(QString("Battery Use Today: %1 kWh").arg(status->nBattuseToday / 10.0));
@@ -159,7 +152,6 @@ void MainWindow::updateStatus()
     ui->lbl30->setText(QString("AC Use Watts: %1 W").arg(status->nAcUseWatts / 10.0));
     ui->lbl31->setText(QString("Battery Use Watts: %1 W").arg(status->nBattuseWatts / 10.0));
     ui->lbl32->setText(QString("Battery Watts: %1 W").arg(status->nBattWatts / 10.0));
-    ui->lbl33->setText(QString("MPPT Fan Speed: %1%").arg(status->nMpptFanspeed));
     ui->lbl34->setText(QString("Inverter Fan Speed: %1%").arg(status->nInvFanspeed));
 }
 

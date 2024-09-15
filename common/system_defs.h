@@ -21,14 +21,11 @@ struct SystemStatus
 {
     //Program status.
     uint16_t nSystemState;
-    uint16_t nModbusFPS;
-    int32_t  slSwitchTime;
     
     //Inverter status.
     uint16_t nInverterState;
     uint16_t nOutputWatts;
     uint16_t nOutputApppwr; //Slightly higher than output watts at idle. Load + inverter?
-    uint16_t nAcChargeWattsH; //Appears when charging?
     uint16_t nAcChargeWattsL; //Appears when charging?
     uint16_t nBatteryVolts;
     uint16_t nBusVolts;
@@ -36,17 +33,13 @@ struct SystemStatus
     uint16_t nGridFreq;
     uint16_t nAcOutVolts;
     uint16_t nAcOutFreq;
-    uint16_t nDcOutVolts;   //Appears when charging?
     uint16_t nInverterTemp;
     uint16_t nDCDCTemp;
     uint16_t nLoadPercent;
-    uint16_t nBattPortVolts; //Appears when charging?
-    uint16_t nBattBusVolts; //Appears when charging?
     uint16_t nBuck1Temp;
     uint16_t nBuck2Temp;
     uint16_t nOutputAmps;
     uint16_t nInverterAmps; //Similar to output apppwr when compared to output amps. Load + inverter?
-    uint16_t nAcInputWattsH; //Appears when grid connected?
     uint16_t nAcInputWattsL; //Appears when grid connected?
     uint16_t nAcchgegyToday;
     uint16_t nBattuseToday;
@@ -55,7 +48,6 @@ struct SystemStatus
     uint16_t nAcUseWatts;
     uint16_t nBattuseWatts;
     uint16_t nBattWatts;
-    uint16_t nMpptFanspeed;
     uint16_t nInvFanspeed;
 };
 
