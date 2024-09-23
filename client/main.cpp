@@ -4,6 +4,7 @@
 #include <QThread>
 #include <QDebug>
 #include <QQuickWidget>
+#include <QFile>
 
 extern "C" {
 #include "tcpclient.h"
@@ -49,10 +50,16 @@ void networkThread() {
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+
+    bool bQtCreator = (std::getenv("GIO_LAUNCHED_DESKTOP_FILE") != nullptr);
+
     MainWindow w(nullptr, &status);
     mainWindow = &w;
-    //w.show();
-    w.showFullScreen();
+
+    if(bQtCreator)
+        w.show();
+    else
+        w.showFullScreen();
 
     // Create a thread
     QThread workerThread;
