@@ -16,8 +16,7 @@
 #include <modbus.h>
 #include <errno.h>
 
-#include "spf5000es_defs.h"
-#include "system_defs.h"
+#include "utils.h"
 #include "tcpserver.h"
 
 bool bRunning = true;
@@ -196,9 +195,10 @@ static void reinit()
 
 static void SetOvernightAmps()
 {
-    //TO DO: Smart amps calculation will happen here.
-
-    if(modbus_write_register(ctx, GW_HREG_MAX_UTIL_AMPS, GW_CFG_UTIL_AMPS_MOD) < 0)
+    //Intelligent charging calculation.
+    status.nChargeCurrent = utils_GetOffpeakChargingAmps(&status);
+    
+    if(modbus_write_register(ctx, GW_HREG_MAX_UTIL_AMPS, status.nChargeCurrent) < 0)
     {
         printft("Failed to write steady util charging amps to config register: %s\n", modbus_strerror(errno));
         reinit();
@@ -209,7 +209,9 @@ static void SetOvernightAmps()
 
 static void SetBoostAmps()
 {
-    if(modbus_write_register(ctx, GW_HREG_MAX_UTIL_AMPS, GW_CFG_UTIL_AMPS_MAX) < 0)
+    status.nChargeCurrent = GW_CFG_UTIL_AMPS_MAX;
+
+    if(modbus_write_register(ctx, GW_HREG_MAX_UTIL_AMPS, status.nChargeCurrent) < 0)
     {
         printft("Failed to write max util charging amps to config register: %s\n", modbus_strerror(errno));
         reinit();
@@ -451,7 +453,7 @@ void* modbus_thread(void* arg)
                     status.nAcUseToday = inputRegs[AC_USE_TODAY_L];
                     status.nAcBattchgAmps = inputRegs[AC_BATTCHG_AMPS];
                     status.nAcUseWatts = inputRegs[AC_USE_WATTS_L];
-                    status.nBattuseWatts = inputRegs[BATTUSE_WATTS_L];
+                    status.nBattUseWatts = inputRegs[BATTUSE_WATTS_L];
                     status.nBattWatts = inputRegs[BATT_WATTS_L];
                     status.nInvFanspeed = inputRegs[INV_FANSPEED];
                     
@@ -485,7 +487,7 @@ void* modbus_thread(void* arg)
                             printftlog("AcUseToday", "%d\n", status.nAcUseToday);
                             printftlog("AcBattchgAmps", "%d\n", status.nAcBattchgAmps);
                             printftlog("AcUseWatts", "%d\n", status.nAcUseWatts);
-                            printftlog("BattuseWatts", "%d\n", status.nBattuseWatts);
+                            printftlog("BattuseWatts", "%d\n", status.nBattUseWatts);
                             printftlog("BattWatts", "%d\n", status.nBattWatts);
                             printftlog("InvFanspeed", "%d\n", status.nInvFanspeed);
                         
@@ -530,6 +532,9 @@ void* modbus_thread(void* arg)
                         //Switch to peak if off-peak?
                         if(SYSTEM_STATE_OFF_PEAK == status.nSystemState)
                         {
+                            //Store the morning's AC charge energy so any boost charging can be accounted for later.
+                            status.nOffPeakChargeKwh = status.nAcchgegyToday;
+                        
                             SwitchToPeak();
                             printft("Switched to peak.\n");
                         }
@@ -595,10 +600,10 @@ void* modbus_thread(void* arg)
                                     printft("Charging times not unlimited as expected. Rewrote holding register.\n");
                                 }
                                 
-                                if(GW_CFG_UTIL_AMPS_MOD != nChargeAmps)
+                                if(status.nChargeCurrent != nChargeAmps)
                                 {
                                     SetOvernightAmps();
-                                    printft("Charging amps not moderate as expected. Rewrote holding register.\n");
+                                    printft("Charging amps not set as expected. Rewrote holding register.\n");
                                 }
                             }
                             break;
@@ -617,10 +622,10 @@ void* modbus_thread(void* arg)
                                     printft("Charging times not unlimited as expected. Rewrote holding register.\n");
                                 }
                                 
-                                if(GW_CFG_UTIL_AMPS_MAX != nChargeAmps)
+                                if(status.nChargeCurrent != nChargeAmps)
                                 {
                                     SetBoostAmps();
-                                    printft("Charging amps not max as expected. Rewrote holding register.\n");
+                                    printft("Charging amps not as expected. Rewrote holding register.\n");
                                 }
                             }
                             break;
@@ -768,7 +773,7 @@ int main()
                         printf("nAcUseToday\t%d\n", status.nAcUseToday);
                         printf("nAcBattchgAmps\t%d\n", status.nAcBattchgAmps);
                         printf("nAcUseWatts\t%d\n", status.nAcUseWatts);
-                        printf("nBattuseWatts\t%d\n", status.nBattuseWatts);
+                        printf("nBattuseWatts\t%d\n", status.nBattUseWatts);
                         printf("nBattWatts\t%d\n", status.nBattWatts);
                         printf("nInvFanspeed\t%d\n", status.nInvFanspeed);
                         printf("--------------------\n");

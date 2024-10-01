@@ -5,8 +5,8 @@
 #include <stdio.h>
 #include <stdint.h>
 
-uint32_t lTestsFailed = 0;
-uint32_t lTestsPassed = 0;
+extern uint32_t lTestsFailed;
+extern uint32_t lTestsPassed;
 
 #define ASSERT_EQUAL(expected, actual, ...) \
     do { \
@@ -31,6 +31,11 @@ uint32_t lTestsPassed = 0;
         } \
     } while (0)
     
+#define PRINT_DEBUG(...) \
+    do { \
+        printf(__VA_ARGS__); \
+    } while (0)
+    
 #define FAIL(...) \
     do { \
         lTestsFailed++; \
@@ -41,3 +46,4 @@ uint32_t lTestsPassed = 0;
     } while (0)
     
 #endif /* TEST_H */
+
