@@ -27,9 +27,11 @@ struct SystemStatus
     //Program status.
     uint16_t nSystemState;
     
+    
     //Intelligent charging.
-    uint16_t nOffPeakChargeKwh; //The total charge energy when the inverter switched to peak this morning.
-    uint16_t nChargeCurrent;    //The charge current that should be employed.
+    uint16_t nOffPeakChargeKwh;   //The total charge energy when the inverter switched to peak this morning.
+    uint16_t nChargeCurrent;      //The charge current that should be employed.
+    int32_t slOffPeakChgComplete; //The time at which overnight charging was deemed to be completed.
         
     //Inverter status.
     uint16_t nInverterState;  //The inverter's current GwInverterStatus state.
@@ -53,7 +55,7 @@ struct SystemStatus
     uint16_t nAcchgegyToday;  //Total kWh taken from the grid to charge batteries since midnight.
     uint16_t nBattuseToday;   //Total kWh taken from the batteries to power loads since midnight.
     uint16_t nAcUseToday;     //Total kWh taken from the grid to power non-charging loads since midnight.
-    uint16_t nAcBattchgAmps;  //Real time battery charging DC current.
+    uint16_t nBattchgAmps;    //Real time battery charging DC current.
     uint16_t nAcUseWatts;     //Almost identical to OutputWatts. Presumably same thing measured elsewhere.
     uint16_t nBattUseWatts;   //Real time load on the batteries (not charging).
     uint16_t nBattWatts;      //Identical to BattUseWatts, but both directional (with charging).

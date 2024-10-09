@@ -124,7 +124,7 @@ enum GwInputRegisters
     AC_USE_TODAY_L,
     AC_USE_TOTAL_H,
     AC_USE_TOTAL_L,
-    AC_BATTCHG_AMPS,
+    BATTCHG_AMPS,
     AC_USE_WATTS_H,
     AC_USE_WATTS_L, //70
     AC_USE_VA_H,

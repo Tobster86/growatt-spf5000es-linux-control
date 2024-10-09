@@ -24,6 +24,8 @@ set(PROJECT_SOURCES
         ../common/system_defs.h
         ../common/comms_protocol.h
         ../common/comms_protocol.c
+        ../common/utils.h
+        ../common/utils.c
 )
 
 # Ensure CMake treats these files as C files

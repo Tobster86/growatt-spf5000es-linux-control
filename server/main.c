@@ -451,7 +451,18 @@ void* modbus_thread(void* arg)
                     status.nAcchgegyToday = inputRegs[ACCHGEGY_TODAY_L];
                     status.nBattuseToday = inputRegs[BATTUSE_TODAY_L];
                     status.nAcUseToday = inputRegs[AC_USE_TODAY_L];
-                    status.nAcBattchgAmps = inputRegs[AC_BATTCHG_AMPS];
+                    
+                    //Find and record the off-peak charge completion time.
+                    if(SYSTEM_STATE_OFF_PEAK == status.nSystemState)
+                    {
+                        if(status.nBattchgAmps > 0 && inputRegs[BATTCHG_AMPS] == 0)
+                        {
+                            status.slOffPeakChgComplete = time(NULL);
+                        }
+                    }
+                    
+                    status.nBattchgAmps = inputRegs[BATTCHG_AMPS];
+                    
                     status.nAcUseWatts = inputRegs[AC_USE_WATTS_L];
                     status.nBattUseWatts = inputRegs[BATTUSE_WATTS_L];
                     status.nBattWatts = inputRegs[BATT_WATTS_L];
@@ -485,7 +496,7 @@ void* modbus_thread(void* arg)
                             printftlog("AcchgegyToday", "%d\n", status.nAcchgegyToday);
                             printftlog("BattuseToday", "%d\n", status.nBattuseToday);
                             printftlog("AcUseToday", "%d\n", status.nAcUseToday);
-                            printftlog("AcBattchgAmps", "%d\n", status.nAcBattchgAmps);
+                            printftlog("BattchgAmps", "%d\n", status.nBattchgAmps);
                             printftlog("AcUseWatts", "%d\n", status.nAcUseWatts);
                             printftlog("BattuseWatts", "%d\n", status.nBattUseWatts);
                             printftlog("BattWatts", "%d\n", status.nBattWatts);
@@ -771,7 +782,7 @@ int main()
                         printf("nAcchgegyToday\t%d\n", status.nAcchgegyToday);
                         printf("nBattuseToday\t%d\n", status.nBattuseToday);
                         printf("nAcUseToday\t%d\n", status.nAcUseToday);
-                        printf("nAcBattchgAmps\t%d\n", status.nAcBattchgAmps);
+                        printf("nBattchgAmps\t%d\n", status.nBattchgAmps);
                         printf("nAcUseWatts\t%d\n", status.nAcUseWatts);
                         printf("nBattuseWatts\t%d\n", status.nBattUseWatts);
                         printf("nBattWatts\t%d\n", status.nBattWatts);

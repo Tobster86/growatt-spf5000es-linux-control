@@ -1,0 +1,45 @@
+---=== Heading ===---
+uint16_t nSystemState;
+uint16_t nInverterState;
+
+--- General ---
+uint16_t nLoadPercent;    //Real time total output load as a percentage of the inverter's capacity.
+uint16_t nOutputWatts;    //Real time output load (excluding charging, including grid bypass).
+uint16_t nOutputApppwr;   //Output load but slightly higher. Includes non-charging inverter power?
+uint16_t nAcUseWatts;     //Almost identical to OutputWatts. Presumably same thing measured elsewhere.
+uint16_t nBattuseToday;   //Total kWh taken from the batteries to power loads since midnight.
+uint16_t nAcUseToday;     //Total kWh taken from the grid to power non-charging loads since midnight.
+
+
+--- Charging ---
+uint16_t nChargeCurrent;      //The charge current that should be employed.
+int32_t slOffPeakChgComplete; //The time at which overnight charging was deemed to be completed.
+uint16_t nOffPeakChargeKwh;   //The total charge energy when the inverter switched to peak this morning.
+uint16_t nAcchgegyToday;  //Total kWh taken from the grid to charge batteries since midnight.
+uint16_t nBattchgAmps;    //Real time battery charging DC current.
+
+
+--- Health ---
+uint16_t nInverterTemp;   //Real time temperature of some part of the inverter.
+uint16_t nDCDCTemp;       //Real time temperature of another part of the inverter.
+uint16_t nBuck1Temp;      //And another.
+uint16_t nBuck2Temp;      //And another.
+uint16_t nInvFanspeed;    //Real time inverter fan speed, as a percentage of max speed.
+uint16_t nBusVolts;       //Real time bus volts, nominally 39V-46V. Doesn't seem useful other than for monitoring.
+uint16_t nOutputAmps;     //Real time output current from the inverter. Not grid, not charging.
+uint16_t nInverterAmps;   //Slightly higher than output amps, and includes charging.
+
+--- AC ---
+uint16_t nGridVolts;      //Real time incoming grid voltage, whether bypassing or not. Can detect external power cuts.
+uint16_t nGridFreq;       //Real time incoming grid frequency, in case it's not 50Hz?
+uint16_t nAcOutVolts;     //Real time output voltage, either from the grid bypass or the inverter itself.
+uint16_t nAcOutFreq;      //Real time output frequency, either from the grid bypass or the inverter itself.
+uint16_t nAcInputWattsL;  //Similar to AcChargeWatts but includes output loads.
+
+
+--- Batteries ---
+uint16_t nBatteryVolts;   //Real time voltage of the batteries.
+uint16_t nAcChargeWattsL; //Seems to be grid battery charging watts, but can register ~100W during grid bypass?
+uint16_t nBattUseWatts;   //Real time load on the batteries (not charging).
+uint16_t nBattWatts;      //Identical to BattUseWatts, but both directional (with charging).
+
