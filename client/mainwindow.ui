@@ -523,7 +523,7 @@
         </property>
         <property name="font">
          <font>
-          <pointsize>20</pointsize>
+          <pointsize>30</pointsize>
           <bold>true</bold>
          </font>
         </property>
@@ -542,7 +542,7 @@
         </property>
         <property name="font">
          <font>
-          <pointsize>18</pointsize>
+          <pointsize>24</pointsize>
           <bold>true</bold>
          </font>
         </property>
@@ -669,7 +669,7 @@
            <widget class="QLabel" name="lbl01">
             <property name="font">
              <font>
-              <pointsize>14</pointsize>
+              <pointsize>18</pointsize>
              </font>
             </property>
             <property name="text">
@@ -681,7 +681,7 @@
            <widget class="QLabel" name="lbl02">
             <property name="font">
              <font>
-              <pointsize>14</pointsize>
+              <pointsize>18</pointsize>
              </font>
             </property>
             <property name="text">
@@ -693,7 +693,7 @@
            <widget class="QLabel" name="lbl03">
             <property name="font">
              <font>
-              <pointsize>14</pointsize>
+              <pointsize>18</pointsize>
              </font>
             </property>
             <property name="text">
@@ -705,7 +705,7 @@
            <widget class="QLabel" name="lbl04">
             <property name="font">
              <font>
-              <pointsize>14</pointsize>
+              <pointsize>18</pointsize>
              </font>
             </property>
             <property name="text">
@@ -717,7 +717,7 @@
            <widget class="QLabel" name="lbl05">
             <property name="font">
              <font>
-              <pointsize>14</pointsize>
+              <pointsize>18</pointsize>
              </font>
             </property>
             <property name="text">
@@ -729,7 +729,7 @@
            <widget class="QLabel" name="lbl06">
             <property name="font">
              <font>
-              <pointsize>14</pointsize>
+              <pointsize>18</pointsize>
              </font>
             </property>
             <property name="text">
@@ -741,7 +741,7 @@
            <widget class="QLabel" name="lbl07">
             <property name="font">
              <font>
-              <pointsize>14</pointsize>
+              <pointsize>18</pointsize>
              </font>
             </property>
             <property name="text">
@@ -753,7 +753,7 @@
            <widget class="QLabel" name="lbl08">
             <property name="font">
              <font>
-              <pointsize>14</pointsize>
+              <pointsize>18</pointsize>
              </font>
             </property>
             <property name="text">

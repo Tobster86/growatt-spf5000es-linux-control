@@ -6,6 +6,7 @@ extern "C" {
 #include "tcpclient.h"
 #include "spf5000es_defs.h"
 #include "comms_defs.h"
+#include "utils.h"
 }
 
 MainWindow::MainWindow(QWidget *parent, SystemStatus* statusPtr)
@@ -172,7 +173,7 @@ void MainWindow::updateStatus()
             ui->lbl04->setVisible(true);
             ui->lbl05->setVisible(true);
 
-            ui->lbl01->setText(QString("Planned Charging Amps: %1 A").arg(utils_GetOffpeakChargingAmps(&status)));
+            ui->lbl01->setText(QString("Planned Charging Amps: %1 A").arg(utils_GetOffpeakChargingAmps(status)));
             ui->lbl02->setText(QString("Off-peak Charge Completed: %1").arg(strChargeComplete));
             ui->lbl03->setText(QString("Off-peak Charge Amount: %1 kWh").arg(status->nOffPeakChargeKwh / 10.0));
             ui->lbl04->setText(QString("AC Charge Energy Today: %1 kWh").arg(status->nAcchgegyToday / 10.0));
