@@ -21,7 +21,7 @@
 
 bool bRunning = true;
 bool bPrintConfigRegisters = false;
-bool bLogging = false;
+bool bLogging = true;
 bool bDebug = false;
 
 enum ModbusState
@@ -218,6 +218,22 @@ static void SetBoostAmps()
     }
     
     usleep(100000);
+}
+
+static void SetManualAmps(uint16_t nAmps)
+{
+    if(nAmps <= GW_HREG_MAX_UTIL_AMPS)
+    {
+        status.nChargeCurrent = nAmps;
+        
+        if(modbus_write_register(ctx, GW_HREG_MAX_UTIL_AMPS, status.nChargeCurrent) < 0)
+        {
+            printft("Failed to write manual util charging amps to config register: %s\n", modbus_strerror(errno));
+            reinit();
+        }
+        
+        usleep(100000);
+    }
 }
 
 static void LimitChargingTimes()
@@ -805,7 +821,7 @@ int main()
                     }
                     break;
                     
-                    case 'h':
+                    case 'f':
                     {
                         printf("Forcing boost...\n");
                         bManualSwitchToBoost = true;
@@ -832,6 +848,30 @@ int main()
                     }
                     break;
                     
+                    case 'a':
+                    {
+                        uint16_t nAmps = 0;
+                        
+                        if (scanf("%hd", &nAmps) == 1 && nAmps >= 1 && nAmps <= 80)
+                        {
+                            printf("Setting charge override to %d amps\n", nAmps);
+                            SetManualAmps(nAmps);
+                            
+                            if(status.nSystemState == SYSTEM_STATE_PEAK ||
+                               status.nSystemState == SYSTEM_STATE_BYPASS)
+                            {
+                                printf("Note: This only applies during charging! State changes will override it again!\n");
+                            }
+                        }
+                        else
+                        {
+                            printf("Invalid input. Please enter a number between 1 and 80.\n");
+                            // Clear the rest of the input buffer in case of invalid input
+                            while ((input = getchar()) != '\n' && input != EOF);
+                        }
+                    }
+                    break;
+                    
                     case '\n':
                     case '\r':
                         //Ignore whitespace.
@@ -844,10 +884,11 @@ int main()
                         printf("s - Print latest status\n");
                         printf("g - Manual grid mode\n");
                         printf("b - Manual battery mode\n");
-                        printf("h - Manual boost mode\n");
+                        printf("f - Manual boost mode\n");
                         printf("c - Read & print config registers\n");
-                        printf("l - toggle logging\n");
-                        printf("d - toggle more debug\n");
+                        printf("l - Toggle logging\n");
+                        printf("d - Toggle more debug\n");
+                        printf("a[1-80] - Override current util charge amps\n");
                         printf("--------------------------------\n");
                         break;
                     }
