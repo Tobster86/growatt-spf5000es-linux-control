@@ -12,7 +12,7 @@
 pthread_t clientThread;
 int client_socket;
 
-const char* server_ip = "192.168.8.69";
+const char* server_ip = "192.168.1.5";
 const int server_port = 20069;
 
 struct sdfComms sdcComms;
