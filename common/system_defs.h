@@ -22,7 +22,7 @@
 
 #define CHARGE_MIN_AMPS        2      /* Absolute minimum charging amps to ever set. */
 
-#define INVERTER_COUNT 2              /* How many inverters are in parallel. */
+#define INVERTER_COUNT 1              /* How many inverters are in parallel. */
 #define INVERTER_1_ID  1              /* The ID of the master inverter. It's assumed that subsequent ones increment from this.*/
 
 struct SystemStatus
