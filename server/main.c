@@ -405,7 +405,7 @@ void* modbus_thread(void* arg)
                 else
                 {
                     //Connect to the MODBUS.
-                    sleep(MODBUS_WAIT);
+                    sleep(1);
                     if (modbus_connect(ctx) == -1)
                     {
                         printft("Could not connect MODBUS slave.\n");
@@ -417,7 +417,7 @@ void* modbus_thread(void* arg)
                     }
                 }
                 
-                sleep(MODBUS_WAIT);
+                sleep(1);
             }
             break;
 
@@ -738,7 +738,7 @@ void* modbus_thread(void* arg)
             default: {}
         }
         
-        usleep(100000);
+        usleep(MODBUS_WAIT);
     }
 
     return NULL;
