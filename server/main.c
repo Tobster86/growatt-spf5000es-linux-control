@@ -497,6 +497,7 @@ void* modbus_thread(void* arg)
                     {
                         printft("Failed to read MODBUS registers for inverter %d.\n", i + INVERTER_1_ID);
                         reinit();
+                        break;
                     }
                     else
                     {
