@@ -19,6 +19,9 @@
 #include "utils.h"
 #include "tcpserver.h"
 
+#define INVERTER_COUNT 2
+#define INVERTER_1_ID  1
+
 bool bRunning = true;
 bool bPrintConfigRegisters = false;
 bool bLogging = true;
@@ -36,9 +39,9 @@ enum ModbusState modbusState = INIT;
 modbus_t *ctx;
 
 struct SystemStatus status;
-uint16_t nInverterMode;
-uint16_t nChargeAmps;
-uint16_t nEndHour;
+uint16_t nInverterMode[INVERTER_COUNT];
+uint16_t nChargeAmps[INVERTER_COUNT];
+uint16_t nEndHour[INVERTER_COUNT];
 bool bManualSwitchToGrid = false;
 bool bManualSwitchToBatts = false;
 bool bManualSwitchToBoost = false;
@@ -198,37 +201,13 @@ static void SetOvernightAmps()
     //Intelligent charging calculation.
     status.nChargeCurrent = utils_GetOffpeakChargingAmps(&status);
     
-    if(modbus_write_register(ctx, GW_HREG_MAX_UTIL_AMPS, status.nChargeCurrent) < 0)
+    for(int i = 0; i < INVERTER_COUNT; i++)
     {
-        printft("Failed to write steady util charging amps to config register: %s\n", modbus_strerror(errno));
-        reinit();
-    }
-    
-    usleep(100000);
-}
-
-static void SetBoostAmps()
-{
-    status.nChargeCurrent = GW_CFG_UTIL_AMPS_MAX;
-
-    if(modbus_write_register(ctx, GW_HREG_MAX_UTIL_AMPS, status.nChargeCurrent) < 0)
-    {
-        printft("Failed to write max util charging amps to config register: %s\n", modbus_strerror(errno));
-        reinit();
-    }
-    
-    usleep(100000);
-}
-
-static void SetManualAmps(uint16_t nAmps)
-{
-    if(nAmps <= GW_HREG_MAX_UTIL_AMPS)
-    {
-        status.nChargeCurrent = nAmps;
+        modbus_set_slave(ctx, i + INVERTER_1_ID);
         
         if(modbus_write_register(ctx, GW_HREG_MAX_UTIL_AMPS, status.nChargeCurrent) < 0)
         {
-            printft("Failed to write manual util charging amps to config register: %s\n", modbus_strerror(errno));
+            printft("Failed to write steady util charging amps to config register: %s\n", modbus_strerror(errno));
             reinit();
         }
         
@@ -236,26 +215,75 @@ static void SetManualAmps(uint16_t nAmps)
     }
 }
 
+static void SetBoostAmps()
+{
+    status.nChargeCurrent = GW_CFG_UTIL_AMPS_MAX;
+    
+    for(int i = 0; i < INVERTER_COUNT; i++)
+    {
+        modbus_set_slave(ctx, i + INVERTER_1_ID);
+        
+        if(modbus_write_register(ctx, GW_HREG_MAX_UTIL_AMPS, status.nChargeCurrent) < 0)
+        {
+            printft("Failed to write max util charging amps to config register: %s\n", modbus_strerror(errno));
+            reinit();
+        }
+        
+        usleep(100000);
+    }
+}
+
+static void SetManualAmps(uint16_t nAmps)
+{
+    if(nAmps <= GW_HREG_MAX_UTIL_AMPS)
+    {
+        status.nChargeCurrent = nAmps;
+
+        for(int i = 0; i < INVERTER_COUNT; i++)
+        {
+            modbus_set_slave(ctx, i + INVERTER_1_ID);
+            
+            if(modbus_write_register(ctx, GW_HREG_MAX_UTIL_AMPS, status.nChargeCurrent) < 0)
+            {
+                printft("Failed to write manual util charging amps to config register: %s\n", modbus_strerror(errno));
+                reinit();
+            }
+            
+            usleep(100000);
+        }
+    }
+}
+
 static void LimitChargingTimes()
 {
-    if(modbus_write_register(ctx, GW_HREG_UTIL_END_HOUR, GW_CFG_UTIL_TIME_OFFPEAK) < 0)
+    for(int i = 0; i < INVERTER_COUNT; i++)
     {
-        printft("Failed to write off-peak only charging config register: %s\n", modbus_strerror(errno));
-        reinit();
+        modbus_set_slave(ctx, i + INVERTER_1_ID);
+
+        if(modbus_write_register(ctx, GW_HREG_UTIL_END_HOUR, GW_CFG_UTIL_TIME_OFFPEAK) < 0)
+        {
+            printft("Failed to write off-peak only charging config register: %s\n", modbus_strerror(errno));
+            reinit();
+        }
+        
+        usleep(100000);
     }
-    
-    usleep(100000);
 }
 
 static void UnlimitChargingTimes()
 {
-    if(modbus_write_register(ctx, GW_HREG_UTIL_END_HOUR, GW_CFG_UTIL_TIME_ANY_TIME) < 0)
+    for(int i = 0; i < INVERTER_COUNT; i++)
     {
-        printft("Failed to write any time charging config register: %s\n", modbus_strerror(errno));
-        reinit();
+        modbus_set_slave(ctx, i + INVERTER_1_ID);
+
+        if(modbus_write_register(ctx, GW_HREG_UTIL_END_HOUR, GW_CFG_UTIL_TIME_ANY_TIME) < 0)
+        {
+            printft("Failed to write any time charging config register: %s\n", modbus_strerror(errno));
+            reinit();
+        }
+        
+        usleep(100000);
     }
-    
-    usleep(100000);
 }
 
 static void SwitchToBypass()
@@ -263,13 +291,18 @@ static void SwitchToBypass()
     status.nSystemState = SYSTEM_STATE_BYPASS;
     slModeWriteTime = time(NULL);
     
-    if(modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_GRID) < 0)
+    for(int i = 0; i < INVERTER_COUNT; i++)
     {
-        printft("Failed to write grid mode (bypass) to config register: %s\n", modbus_strerror(errno));
-        reinit();
+        modbus_set_slave(ctx, i + INVERTER_1_ID);
+
+        if(modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_GRID) < 0)
+        {
+            printft("Failed to write grid mode (bypass) to config register: %s\n", modbus_strerror(errno));
+            reinit();
+        }
+        
+        usleep(100000);
     }
-    
-    usleep(100000);
     
     //Enable the inverter's utility charging time limits to prevent unwanted charging.
     LimitChargingTimes();
@@ -280,13 +313,18 @@ static void SwitchToPeak()
     status.nSystemState = SYSTEM_STATE_PEAK;
     slModeWriteTime = time(NULL);
     
-    if(modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_BATTS) < 0)
+    for(int i = 0; i < INVERTER_COUNT; i++)
     {
-        printft("Failed to write batt mode (peak) to config register: %s\n", modbus_strerror(errno));
-        reinit();
+        modbus_set_slave(ctx, i + INVERTER_1_ID);
+        
+        if(modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_BATTS) < 0)
+        {
+            printft("Failed to write batt mode (peak) to config register: %s\n", modbus_strerror(errno));
+            reinit();
+        }
+        
+        usleep(100000);
     }
-    
-    usleep(100000);
     
     //Enable the inverter's utility charging time limits to prevent unwanted charging.
     LimitChargingTimes();
@@ -297,13 +335,18 @@ static void SwitchToOffPeak()
     status.nSystemState = SYSTEM_STATE_OFF_PEAK;
     slModeWriteTime = time(NULL);
     
-    if(modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_GRID) < 0)
+    for(int i = 0; i < INVERTER_COUNT; i++)
     {
-        printft("Failed to write grid mode (off peak) to config register: %s\n", modbus_strerror(errno));
-        reinit();
+        modbus_set_slave(ctx, i + INVERTER_1_ID);
+        
+        if(modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_GRID) < 0)
+        {
+            printft("Failed to write grid mode (off peak) to config register: %s\n", modbus_strerror(errno));
+            reinit();
+        }
+        
+        usleep(100000);
     }
-    
-    usleep(100000);
     
     //Disable the inverter's utility charging time limits to take advantage of the full off-peak.
     UnlimitChargingTimes();
@@ -317,13 +360,18 @@ static void SwitchToBoost()
     status.nSystemState = SYSTEM_STATE_BOOST;
     slModeWriteTime = time(NULL);
     
-    if(modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_GRID) < 0)
+    for(int i = 0; i < INVERTER_COUNT; i++)
     {
-        printft("Failed to write grid mode (boost) to config register: %s\n", modbus_strerror(errno));
-        reinit();
+        modbus_set_slave(ctx, i + INVERTER_1_ID);
+        
+        if(modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_GRID) < 0)
+        {
+            printft("Failed to write grid mode (boost) to config register: %s\n", modbus_strerror(errno));
+            reinit();
+        }
+        
+        usleep(100000);
     }
-    
-    usleep(100000);
     
     //Disable the inverter's utility charging time limits to allow any time charging.
     UnlimitChargingTimes();
@@ -334,8 +382,6 @@ static void SwitchToBoost()
 
 void* modbus_thread(void* arg)
 {
-    uint16_t inputRegs[INPUT_REGISTER_COUNT];
-
     while(modbusState != DIE)
     {
         switch(modbusState)
@@ -355,7 +401,6 @@ void* modbus_thread(void* arg)
                 {
                     //Connect to the MODBUS slave (slave ID 1)
                     sleep(1);
-                    modbus_set_slave(ctx, 1);
                     if (modbus_connect(ctx) == -1)
                     {
                         printft("Could not connect MODBUS slave.\n");
@@ -379,45 +424,56 @@ void* modbus_thread(void* arg)
                     
                     printf("Reading config registers...\n");
                     
-                    uint16_t configRegs[10];
-                    
-                    for(int i = 0; i < 36; i++)
+                    for(int i = 0; i < INVERTER_COUNT; i++)
                     {
-                        memset(configRegs, 0, sizeof(configRegs));
-                    
-                        if(-1 == modbus_read_registers(ctx, i * 10, 10, &configRegs[0]))
+                        printf("Inverter %d:\n", i + INVERTER_1_ID);
+                        
+                        uint16_t configRegs[10];
+                        
+                        for(int i = 0; i < 36; i++)
                         {
-                            printf("Failed to read config registers: %s\n", modbus_strerror(errno));
-                            break;
+                            memset(configRegs, 0, sizeof(configRegs));
+                            
+                            modbus_set_slave(ctx, i + INVERTER_1_ID);
+                        
+                            if(-1 == modbus_read_registers(ctx, i * 10, 10, &configRegs[0]))
+                            {
+                                printf("Failed to read config registers: %s\n", modbus_strerror(errno));
+                                break;
+                            }
+                            else
+                            {
+                                printf("%5d %8d %8d %8d %8d %8d %8d %8d %8d %8d %8d\n",
+                                       i * 10,
+                                       configRegs[0],
+                                       configRegs[1],
+                                       configRegs[2],
+                                       configRegs[3],
+                                       configRegs[4],
+                                       configRegs[5],
+                                       configRegs[6],
+                                       configRegs[7],
+                                       configRegs[8],
+                                       configRegs[9]);
+                            }
                         }
-                        else
-                        {
-                            printf("%5d %8d %8d %8d %8d %8d %8d %8d %8d %8d %8d\n",
-                                   i * 10,
-                                   configRegs[0],
-                                   configRegs[1],
-                                   configRegs[2],
-                                   configRegs[3],
-                                   configRegs[4],
-                                   configRegs[5],
-                                   configRegs[6],
-                                   configRegs[7],
-                                   configRegs[8],
-                                   configRegs[9]);
-                        }
+                        
+                        printf("--------------------------------\n");
                     }
-                    
-                    printf("--------------------------------\n");
                 }
             
                 //Read input registers and holding register (inverter mode).
+                for(int i = 0; i < INVERTER_COUNT; i++)
+                {
+                uint16_t inputRegs[INPUT_REGISTER_COUNT];
+                
                 int inputRegRead = modbus_read_input_registers(ctx, 0, INPUT_REGISTER_COUNT, inputRegs);
                 usleep(10000);
-                int holdingRegRead1 = modbus_read_registers(ctx, GW_HREG_CFG_MODE, 1, &nInverterMode);
+                int holdingRegRead1 = modbus_read_registers(ctx, GW_HREG_CFG_MODE, 1, &nInverterMode[i]);
                 usleep(10000);
-                int holdingRegRead2 = modbus_read_registers(ctx, GW_HREG_MAX_UTIL_AMPS, 1, &nChargeAmps);
+                int holdingRegRead2 = modbus_read_registers(ctx, GW_HREG_MAX_UTIL_AMPS, 1, &nChargeAmps[i]);
                 usleep(10000);
-                int holdingRegRead3 = modbus_read_registers(ctx, GW_HREG_UTIL_END_HOUR, 1, &nEndHour);
+                int holdingRegRead3 = modbus_read_registers(ctx, GW_HREG_UTIL_END_HOUR, 1, &nEndHour[i]);
                 usleep(10000);
                 
                 if(-1 == inputRegRead ||
