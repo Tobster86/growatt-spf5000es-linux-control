@@ -20,8 +20,9 @@
 #include "tcpserver.h"
 
 bool bRunning = true;
-bool bPrintConfigRegisters = false;
 bool bLogging = true;
+
+#define MODBUS_WAIT 150000
 
 enum ModbusState
 {
@@ -192,7 +193,7 @@ static void reinit()
     }
 
     modbusState = INIT;
-    sleep(1);
+    sleep(MODBUS_WAIT);
 }
 
 static void SetOvernightAmps()
@@ -210,7 +211,7 @@ static void SetOvernightAmps()
             reinit();
         }
         
-        usleep(100000);
+        usleep(MODBUS_WAIT);
     }
 }
 
@@ -228,7 +229,7 @@ static void SetBoostAmps()
             reinit();
         }
         
-        usleep(100000);
+        usleep(MODBUS_WAIT);
     }
 }
 
@@ -248,7 +249,7 @@ static void SetManualAmps(uint16_t nAmps)
                 reinit();
             }
             
-            usleep(100000);
+            usleep(MODBUS_WAIT);
         }
     }
 }
@@ -265,7 +266,7 @@ static void LimitChargingTimes()
             reinit();
         }
         
-        usleep(100000);
+        usleep(MODBUS_WAIT);
     }
 }
 
@@ -281,7 +282,7 @@ static void UnlimitChargingTimes()
             reinit();
         }
         
-        usleep(100000);
+        usleep(MODBUS_WAIT);
     }
 }
 
@@ -300,7 +301,7 @@ static void SwitchToBypass()
             reinit();
         }
         
-        usleep(100000);
+        usleep(MODBUS_WAIT);
     }
     
     //Enable the inverter's utility charging time limits to prevent unwanted charging.
@@ -322,7 +323,7 @@ static void SwitchToPeak()
             reinit();
         }
         
-        usleep(100000);
+        usleep(MODBUS_WAIT);
     }
     
     //Enable the inverter's utility charging time limits to prevent unwanted charging.
@@ -344,7 +345,7 @@ static void SwitchToOffPeak()
             reinit();
         }
         
-        usleep(100000);
+        usleep(MODBUS_WAIT);
     }
     
     //Disable the inverter's utility charging time limits to take advantage of the full off-peak.
@@ -369,7 +370,7 @@ static void SwitchToBoost()
             reinit();
         }
         
-        usleep(100000);
+        usleep(MODBUS_WAIT);
     }
     
     //Disable the inverter's utility charging time limits to allow any time charging.
@@ -404,7 +405,7 @@ void* modbus_thread(void* arg)
                 else
                 {
                     //Connect to the MODBUS.
-                    sleep(1);
+                    sleep(MODBUS_WAIT);
                     if (modbus_connect(ctx) == -1)
                     {
                         printft("Could not connect MODBUS slave.\n");
@@ -416,56 +417,12 @@ void* modbus_thread(void* arg)
                     }
                 }
                 
-                sleep(1);
+                sleep(MODBUS_WAIT);
             }
             break;
 
             case PROCESS:
             {
-                if(bPrintConfigRegisters)
-                {
-                    bPrintConfigRegisters = false;
-                    
-                    printf("Reading config registers...\n");
-                    
-                    for(int i = 0; i < INVERTER_COUNT; i++)
-                    {
-                        printf("Inverter %d:\n", i + INVERTER_1_ID);
-                        
-                        uint16_t configRegs[10];
-                        
-                        for(int i = 0; i < 36; i++)
-                        {
-                            memset(configRegs, 0, sizeof(configRegs));
-                            
-                            modbus_set_slave(ctx, i + INVERTER_1_ID);
-                        
-                            if(-1 == modbus_read_registers(ctx, i * 10, 10, &configRegs[0]))
-                            {
-                                printf("Failed to read config registers: %s\n", modbus_strerror(errno));
-                                break;
-                            }
-                            else
-                            {
-                                printf("%5d %8d %8d %8d %8d %8d %8d %8d %8d %8d %8d\n",
-                                       i * 10,
-                                       configRegs[0],
-                                       configRegs[1],
-                                       configRegs[2],
-                                       configRegs[3],
-                                       configRegs[4],
-                                       configRegs[5],
-                                       configRegs[6],
-                                       configRegs[7],
-                                       configRegs[8],
-                                       configRegs[9]);
-                            }
-                        }
-                        
-                        printf("--------------------------------\n");
-                    }
-                }
-                
                 //Get the time.
                 time_t rawtime;
                 struct tm* timeinfo;
@@ -482,12 +439,13 @@ void* modbus_thread(void* arg)
                     modbus_set_slave(ctx, i + INVERTER_1_ID);
                     
                     int inputRegRead = modbus_read_input_registers(ctx, 0, INPUT_REGISTER_COUNT, inputRegs);
-                    usleep(100000);
+                    usleep(MODBUS_WAIT);
                     int holdingRegRead1 = modbus_read_registers(ctx, GW_HREG_CFG_MODE, 1, &nInverterMode[i]);
-                    usleep(100000);
+                    usleep(MODBUS_WAIT);
                     int holdingRegRead2 = modbus_read_registers(ctx, GW_HREG_MAX_UTIL_AMPS, 1, &nChargeAmps[i]);
-                    usleep(100000);
+                    usleep(MODBUS_WAIT);
                     int holdingRegRead3 = modbus_read_registers(ctx, GW_HREG_UTIL_END_HOUR, 1, &nEndHour[i]);
+                    usleep(MODBUS_WAIT);
                     
                     if(-1 == inputRegRead ||
                        -1 == holdingRegRead1 ||
@@ -893,12 +851,6 @@ int main()
                     }
                     break;
                     
-                    case 'c':
-                    {
-                        bPrintConfigRegisters = true;
-                    }
-                    break;
-                    
                     case 'l':
                     {
                         bLogging = !bLogging;
@@ -943,9 +895,7 @@ int main()
                         printf("g - Manual grid mode\n");
                         printf("b - Manual battery mode\n");
                         printf("f - Manual boost mode\n");
-                        printf("c - Read & print config registers\n");
                         printf("l - Toggle logging\n");
-                        printf("d - Toggle more debug\n");
                         printf("a[1-80] - Override current util charge amps\n");
                         printf("--------------------------------\n");
                         break;
