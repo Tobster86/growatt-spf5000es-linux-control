@@ -19,13 +19,9 @@
 #include "utils.h"
 #include "tcpserver.h"
 
-#define INVERTER_COUNT 2
-#define INVERTER_1_ID  1
-
 bool bRunning = true;
 bool bPrintConfigRegisters = false;
 bool bLogging = true;
-bool bDebug = false;
 
 enum ModbusState
 {
@@ -46,6 +42,9 @@ bool bManualSwitchToGrid = false;
 bool bManualSwitchToBatts = false;
 bool bManualSwitchToBoost = false;
 int32_t slModeWriteTime;
+
+static int lLoggingLastMin[INVERTER_COUNT];
+                            
 
 uint16_t nLastInverterMode = 0xFFFF;
 uint16_t nLastSystemState = 0xFFFF;
@@ -382,6 +381,11 @@ static void SwitchToBoost()
 
 void* modbus_thread(void* arg)
 {
+    for(int i = 0; i < INVERTER_COUNT; i++)
+    {
+        lLoggingLastMin[i] = -1;
+    }
+
     while(modbusState != DIE)
     {
         switch(modbusState)
@@ -461,123 +465,119 @@ void* modbus_thread(void* arg)
                         printf("--------------------------------\n");
                     }
                 }
+                
+                //Get the time.
+                time_t rawtime;
+                struct tm* timeinfo;
+                time(&rawtime);
+                timeinfo = localtime(&rawtime);
+                int lHour = timeinfo->tm_hour;
+                int lMin = timeinfo->tm_min;
             
                 //Read input registers and holding register (inverter mode).
                 for(int i = 0; i < INVERTER_COUNT; i++)
                 {
-                uint16_t inputRegs[INPUT_REGISTER_COUNT];
-                
-                int inputRegRead = modbus_read_input_registers(ctx, 0, INPUT_REGISTER_COUNT, inputRegs);
-                usleep(10000);
-                int holdingRegRead1 = modbus_read_registers(ctx, GW_HREG_CFG_MODE, 1, &nInverterMode[i]);
-                usleep(10000);
-                int holdingRegRead2 = modbus_read_registers(ctx, GW_HREG_MAX_UTIL_AMPS, 1, &nChargeAmps[i]);
-                usleep(10000);
-                int holdingRegRead3 = modbus_read_registers(ctx, GW_HREG_UTIL_END_HOUR, 1, &nEndHour[i]);
-                usleep(10000);
-                
-                if(-1 == inputRegRead ||
-                   -1 == holdingRegRead1 ||
-                   -1 == holdingRegRead2 ||
-                   -1 == holdingRegRead3 )
-                {
-                    printft("Failed to read input registers and config mode via MODBUS.\n");
-                    reinit();
-                }
-                else
-                {
-                    if(bDebug)
-                    {
-                        printft("nInverterMode =\t%d.\n");
-                        printft("nChargeAmps =\t%d.\n");
-                        printft("nEndHour =\t%d.\n");
-                    }
-                
-                    //Get the time.
-                    time_t rawtime;
-                    struct tm* timeinfo;
-                    time(&rawtime);
-                    timeinfo = localtime(&rawtime);
-                    int lHour = timeinfo->tm_hour;
-                    int lMin = timeinfo->tm_min;
-                
-                    //Store relevant input register values.
-                    status.nInverterState = inputRegs[STATUS];
-                    status.nOutputWatts = inputRegs[OUTPUT_WATTS_L];
-                    status.nOutputApppwr = inputRegs[OUTPUT_APPPWR_L];
-                    status.nAcChargeWattsL = inputRegs[AC_CHARGE_WATTS_L];
-                    status.nBatteryVolts = inputRegs[BATTERY_VOLTS];
-                    status.nBusVolts = inputRegs[BUS_VOLTS];
-                    status.nGridVolts = inputRegs[GRID_VOLTS];
-                    status.nGridFreq = inputRegs[GRID_FREQ];
-                    status.nAcOutVolts = inputRegs[AC_OUT_VOLTS];
-                    status.nAcOutFreq = inputRegs[AC_OUT_FREQ];
-                    status.nInverterTemp = inputRegs[INVERTER_TEMP];
-                    status.nDCDCTemp = inputRegs[DCDC_TEMP];
-                    status.nLoadPercent = inputRegs[LOAD_PERCENT];
-                    status.nBuck1Temp = inputRegs[BUCK1_TEMP];
-                    status.nBuck2Temp = inputRegs[BUCK2_TEMP];
-                    status.nOutputAmps = inputRegs[OUTPUT_AMPS];
-                    status.nInverterAmps = inputRegs[INVERTER_AMPS];
-                    status.nAcInputWattsL = inputRegs[AC_INPUT_WATTS_L];
-                    status.nAcchgegyToday = inputRegs[ACCHGEGY_TODAY_L];
-                    status.nBattuseToday = inputRegs[BATTUSE_TODAY_L];
-                    status.nAcUseToday = inputRegs[AC_USE_TODAY_L];
+                    uint16_t inputRegs[INPUT_REGISTER_COUNT];
+
+                    modbus_set_slave(ctx, i + INVERTER_1_ID);
                     
+                    int inputRegRead = modbus_read_input_registers(ctx, 0, INPUT_REGISTER_COUNT, inputRegs);
+                    usleep(10000);
+                    int holdingRegRead1 = modbus_read_registers(ctx, GW_HREG_CFG_MODE, 1, &nInverterMode[i]);
+                    usleep(10000);
+                    int holdingRegRead2 = modbus_read_registers(ctx, GW_HREG_MAX_UTIL_AMPS, 1, &nChargeAmps[i]);
+                    usleep(10000);
+                    int holdingRegRead3 = modbus_read_registers(ctx, GW_HREG_UTIL_END_HOUR, 1, &nEndHour[i]);
+                    usleep(10000);
+                    
+                    if(-1 == inputRegRead ||
+                       -1 == holdingRegRead1 ||
+                       -1 == holdingRegRead2 ||
+                       -1 == holdingRegRead3 )
+                    {
+                        printft("Failed to read MODBUS registers for inverter %d.\n", i + INVERTER_1_ID);
+                        reinit();
+                    }
+                    else
+                    {
+                        //Store relevant input register values.
+                        status.nInverterState[i] = inputRegs[STATUS];
+                        status.nOutputWatts[i] = inputRegs[OUTPUT_WATTS_L];
+                        status.nOutputApppwr[i] = inputRegs[OUTPUT_APPPWR_L];
+                        status.nAcChargeWattsL[i] = inputRegs[AC_CHARGE_WATTS_L];
+                        status.nBatteryVolts[i] = inputRegs[BATTERY_VOLTS];
+                        status.nBusVolts[i] = inputRegs[BUS_VOLTS];
+                        status.nGridVolts[i] = inputRegs[GRID_VOLTS];
+                        status.nGridFreq[i] = inputRegs[GRID_FREQ];
+                        status.nAcOutVolts[i] = inputRegs[AC_OUT_VOLTS];
+                        status.nAcOutFreq[i] = inputRegs[AC_OUT_FREQ];
+                        status.nInverterTemp[i] = inputRegs[INVERTER_TEMP];
+                        status.nDCDCTemp[i] = inputRegs[DCDC_TEMP];
+                        status.nLoadPercent[i] = inputRegs[LOAD_PERCENT];
+                        status.nBuck1Temp[i] = inputRegs[BUCK1_TEMP];
+                        status.nBuck2Temp[i] = inputRegs[BUCK2_TEMP];
+                        status.nOutputAmps[i] = inputRegs[OUTPUT_AMPS];
+                        status.nInverterAmps[i] = inputRegs[INVERTER_AMPS];
+                        status.nAcInputWattsL[i] = inputRegs[AC_INPUT_WATTS_L];
+                        status.nAcchgegyToday[i] = inputRegs[ACCHGEGY_TODAY_L];
+                        status.nBattuseToday[i] = inputRegs[BATTUSE_TODAY_L];
+                        status.nAcUseToday[i] = inputRegs[AC_USE_TODAY_L];
+                        status.nBattchgAmps[i] = inputRegs[BATTCHG_AMPS];
+                        status.nAcUseWatts[i] = inputRegs[AC_USE_WATTS_L];
+                        status.nBattUseWatts[i] = inputRegs[BATTUSE_WATTS_L];
+                        status.nBattWatts[i] = inputRegs[BATT_WATTS_L];
+                        status.nInvFanspeed[i] = inputRegs[INV_FANSPEED];
+                        
+                        if(bLogging)
+                        {
+                            if (lMin % 5 == 0 && lMin != lLoggingLastMin[i])
+                            {
+                                //Log all values to files every five minutes.
+                                printftlog("InverterState", "%d\n", status.nInverterState[i]);
+                                printftlog("OutputWatts", "%d\n", status.nOutputWatts[i]);
+                                printftlog("OutputApppwr", "%d\n", status.nOutputApppwr[i]);
+                                printftlog("AcChargeWattsL", "%d\n", status.nAcChargeWattsL[i]);
+                                printftlog("BatteryVolts", "%d\n", status.nBatteryVolts[i]);
+                                printftlog("BusVolts", "%d\n", status.nBusVolts[i]);
+                                printftlog("GridVolts", "%d\n", status.nGridVolts[i]);
+                                printftlog("GridFreq", "%d\n", status.nGridFreq[i]);
+                                printftlog("AcOutVolts", "%d\n", status.nAcOutVolts[i]);
+                                printftlog("AcOutFreq", "%d\n", status.nAcOutFreq[i]);
+                                printftlog("InverterTemp", "%d\n", status.nInverterTemp[i]);
+                                printftlog("DCDCTemp", "%d\n", status.nDCDCTemp[i]);
+                                printftlog("LoadPercent", "%d\n", status.nLoadPercent[i]);
+                                printftlog("Buck1Temp", "%d\n", status.nBuck1Temp[i]);
+                                printftlog("Buck2Temp", "%d\n", status.nBuck2Temp[i]);
+                                printftlog("OutputAmps", "%d\n", status.nOutputAmps[i]);
+                                printftlog("InverterAmps", "%d\n", status.nInverterAmps[i]);
+                                printftlog("AcInputWattsL", "%d\n", status.nAcInputWattsL[i]);
+                                printftlog("AcchgegyToday", "%d\n", status.nAcchgegyToday[i]);
+                                printftlog("BattuseToday", "%d\n", status.nBattuseToday[i]);
+                                printftlog("AcUseToday", "%d\n", status.nAcUseToday[i]);
+                                printftlog("BattchgAmps", "%d\n", status.nBattchgAmps[i]);
+                                printftlog("AcUseWatts", "%d\n", status.nAcUseWatts[i]);
+                                printftlog("BattuseWatts", "%d\n", status.nBattUseWatts[i]);
+                                printftlog("BattWatts", "%d\n", status.nBattWatts[i]);
+                                printftlog("InvFanspeed", "%d\n", status.nInvFanspeed[i]);
+                            
+                                lLoggingLastMin[i] = lMin;
+                            }
+                        }
+                    }
+                }
+                
+                //Do general processing if reading the inverters went okay, using the values read from the master inverter.
+                if(PROCESS == modbusState)
+                {
                     //Find and record the off-peak charge completion time.
                     if(SYSTEM_STATE_OFF_PEAK == status.nSystemState)
                     {
-                        if(status.nBattchgAmps > 0 && inputRegs[BATTCHG_AMPS] == 0)
+                        if(status.nBattchgAmps > 0 && status.nBattchgAmps[0] == 0)
                         {
                             status.slOffPeakChgComplete = time(NULL);
                         }
                     }
                     
-                    status.nBattchgAmps = inputRegs[BATTCHG_AMPS];
-                    
-                    status.nAcUseWatts = inputRegs[AC_USE_WATTS_L];
-                    status.nBattUseWatts = inputRegs[BATTUSE_WATTS_L];
-                    status.nBattWatts = inputRegs[BATT_WATTS_L];
-                    status.nInvFanspeed = inputRegs[INV_FANSPEED];
-                    
-                    if(bLogging)
-                    {
-                        static int lLastMin = -1;
-                        
-                        if (lMin % 5 == 0 && lMin != lLastMin)
-                        {
-                            //Log all values to files every five minutes.
-                            printftlog("InverterState", "%d\n", status.nInverterState);
-                            printftlog("OutputWatts", "%d\n", status.nOutputWatts);
-                            printftlog("OutputApppwr", "%d\n", status.nOutputApppwr);
-                            printftlog("AcChargeWattsL", "%d\n", status.nAcChargeWattsL);
-                            printftlog("BatteryVolts", "%d\n", status.nBatteryVolts);
-                            printftlog("BusVolts", "%d\n", status.nBusVolts);
-                            printftlog("GridVolts", "%d\n", status.nGridVolts);
-                            printftlog("GridFreq", "%d\n", status.nGridFreq);
-                            printftlog("AcOutVolts", "%d\n", status.nAcOutVolts);
-                            printftlog("AcOutFreq", "%d\n", status.nAcOutFreq);
-                            printftlog("InverterTemp", "%d\n", status.nInverterTemp);
-                            printftlog("DCDCTemp", "%d\n", status.nDCDCTemp);
-                            printftlog("LoadPercent", "%d\n", status.nLoadPercent);
-                            printftlog("Buck1Temp", "%d\n", status.nBuck1Temp);
-                            printftlog("Buck2Temp", "%d\n", status.nBuck2Temp);
-                            printftlog("OutputAmps", "%d\n", status.nOutputAmps);
-                            printftlog("InverterAmps", "%d\n", status.nInverterAmps);
-                            printftlog("AcInputWattsL", "%d\n", status.nAcInputWattsL);
-                            printftlog("AcchgegyToday", "%d\n", status.nAcchgegyToday);
-                            printftlog("BattuseToday", "%d\n", status.nBattuseToday);
-                            printftlog("AcUseToday", "%d\n", status.nAcUseToday);
-                            printftlog("BattchgAmps", "%d\n", status.nBattchgAmps);
-                            printftlog("AcUseWatts", "%d\n", status.nAcUseWatts);
-                            printftlog("BattuseWatts", "%d\n", status.nBattUseWatts);
-                            printftlog("BattWatts", "%d\n", status.nBattWatts);
-                            printftlog("InvFanspeed", "%d\n", status.nInvFanspeed);
-                        
-                            lLastMin = lMin;
-                        }
-                    }
-                
                     //Manual switching.
                     if(SYSTEM_STATE_OFF_PEAK != status.nSystemState)
                     {
@@ -616,7 +616,12 @@ void* modbus_thread(void* arg)
                         if(SYSTEM_STATE_OFF_PEAK == status.nSystemState)
                         {
                             //Store the morning's AC charge energy so any boost charging can be accounted for later.
-                            status.nOffPeakChargeKwh = status.nAcchgegyToday;
+                            status.nOffPeakChargeKwh = 0;
+                            
+                            for(int i = 0; i < INVERTER_COUNT; i++)
+                            {
+                                status.nOffPeakChargeKwh += status.nAcchgegyToday[i];
+                            }
                         
                             SwitchToPeak();
                             printft("Switched to peak.\n");
@@ -639,13 +644,13 @@ void* modbus_thread(void* arg)
                         {
                             case SYSTEM_STATE_PEAK:
                             {
-                                if(GW_CFG_MODE_BATTS != nInverterMode)
+                                if(GW_CFG_MODE_BATTS != nInverterMode[0])
                                 {
                                     SwitchToPeak();
                                     printft("Wasn't on batts as expected. Rewrote holding register.\n");
                                 }
                                 
-                                if(GW_CFG_UTIL_TIME_OFFPEAK != nEndHour)
+                                if(GW_CFG_UTIL_TIME_OFFPEAK != nEndHour[0])
                                 {
                                     LimitChargingTimes();
                                     printft("Charging times not limited as expected. Rewrote holding register.\n");
@@ -655,13 +660,13 @@ void* modbus_thread(void* arg)
                             
                             case SYSTEM_STATE_BYPASS:
                             {
-                                if(GW_CFG_MODE_GRID != nInverterMode)
+                                if(GW_CFG_MODE_GRID != nInverterMode[0])
                                 {
                                     SwitchToBypass();
                                     printft("Wasn't on grid as expected. Rewrote holding register.\n");
                                 }
                                 
-                                if(GW_CFG_UTIL_TIME_OFFPEAK != nEndHour)
+                                if(GW_CFG_UTIL_TIME_OFFPEAK != nEndHour[0])
                                 {
                                     LimitChargingTimes();
                                     printft("Charging times not limited as expected. Rewrote holding register.\n");
@@ -671,19 +676,19 @@ void* modbus_thread(void* arg)
                             
                             case SYSTEM_STATE_OFF_PEAK:
                             {
-                                if(GW_CFG_MODE_GRID != nInverterMode)
+                                if(GW_CFG_MODE_GRID != nInverterMode[0])
                                 {
                                     SwitchToOffPeak();
                                     printft("Wasn't on grid as expected. Rewrote holding register.\n");
                                 }
                                 
-                                if(GW_CFG_UTIL_TIME_ANY_TIME != nEndHour)
+                                if(GW_CFG_UTIL_TIME_ANY_TIME != nEndHour[0])
                                 {
                                     UnlimitChargingTimes();
                                     printft("Charging times not unlimited as expected. Rewrote holding register.\n");
                                 }
                                 
-                                if(status.nChargeCurrent != nChargeAmps)
+                                if(status.nChargeCurrent != nChargeAmps[0])
                                 {
                                     SetOvernightAmps();
                                     printft("Charging amps not set as expected. Rewrote holding register.\n");
@@ -693,19 +698,19 @@ void* modbus_thread(void* arg)
                             
                             case SYSTEM_STATE_BOOST:
                             {
-                                if(GW_CFG_MODE_GRID != nInverterMode)
+                                if(GW_CFG_MODE_GRID != nInverterMode[0])
                                 {
                                     SwitchToBoost();
                                     printft("Wasn't on boost as expected. Rewrote holding register.\n");
                                 }
                                 
-                                if(GW_CFG_UTIL_TIME_ANY_TIME != nEndHour)
+                                if(GW_CFG_UTIL_TIME_ANY_TIME != nEndHour[0])
                                 {
                                     UnlimitChargingTimes();
                                     printft("Charging times not unlimited as expected. Rewrote holding register.\n");
                                 }
                                 
-                                if(status.nChargeCurrent != nChargeAmps)
+                                if(status.nChargeCurrent != nChargeAmps[0])
                                 {
                                     SetBoostAmps();
                                     printft("Charging amps not as expected. Rewrote holding register.\n");
@@ -716,17 +721,17 @@ void* modbus_thread(void* arg)
                     }
                     
                     //Print state changes.
-                    if(nLastInverterMode != nInverterMode)
+                    if(nLastInverterMode != nInverterMode[0])
                     {
                         printft("nInverterMode changed to ");
-                        switch(nInverterMode)
+                        switch(nInverterMode[0])
                         {
                             case GW_CFG_MODE_BATTS: printf("BATTERIES\n"); break;
                             case GW_CFG_MODE_GRID: printf("GRID\n"); break;
-                            default: printf("GOD KNOWS! (%d)\n", nInverterMode); break;
+                            default: printf("GOD KNOWS! (%d)\n", nInverterMode[0]); break;
                         }
                 
-                        nLastInverterMode = nInverterMode;
+                        nLastInverterMode = nInverterMode[0];
                     }
                     
                     if(nLastSystemState != status.nSystemState)
@@ -744,15 +749,15 @@ void* modbus_thread(void* arg)
                         nLastSystemState = status.nSystemState;
                     }
                     
-                    if(nLastInverterState != status.nInverterState)
+                    if(nLastInverterState != status.nInverterState[0])
                     {
                         printft("nInverterState changed to ");
-                        if(status.nInverterState >= 0 && status.nInverterState < INVERTER_STATE_COUNT)
-                            printf("%s\n", GwInverterStatusStrings[status.nInverterState]);
+                        if(status.nInverterState[0] >= 0 && status.nInverterState[0] < INVERTER_STATE_COUNT)
+                            printf("%s\n", GwInverterStatusStrings[status.nInverterState[0]]);
                         else
-                            printf("UNKNOWN (%d)\n", status.nInverterState);
+                            printf("UNKNOWN (%d)\n", status.nInverterState[0]);
                             
-                        nLastInverterState = status.nInverterState;
+                        nLastInverterState = status.nInverterState[0];
                     }
                 }
             }
@@ -807,59 +812,63 @@ int main()
 
                     case 's':
                     {
-                        printf("---=== Status ===---\n");
-                        switch(nInverterMode)
+                        for(int i = 0; i < INVERTER_COUNT; i++)
                         {
-                            case GW_CFG_MODE_BATTS: printf("nInverterMode\tBATTERIES\n"); break;
-                            case GW_CFG_MODE_GRID: printf("nInverterMode\tGRID\n"); break;
-                            default: printf("nInverterMode\tGOD KNOWS! (%d)\n", nInverterMode); break;
+                            printf("---=== Status ===---\n");
+                            printf("Inverter %d:\n", i + INVERTER_1_ID);
+                            switch(nInverterMode[i])
+                            {
+                                case GW_CFG_MODE_BATTS: printf("nInverterMode\tBATTERIES\n"); break;
+                                case GW_CFG_MODE_GRID: printf("nInverterMode\tGRID\n"); break;
+                                default: printf("nInverterMode\tGOD KNOWS! (%d)\n", nInverterMode[i]); break;
+                            }
+                            
+                            switch(status.nSystemState)
+                            {
+                                case SYSTEM_STATE_PEAK: printf("nSystemState\tPEAK\n"); break;
+                                case SYSTEM_STATE_BYPASS: printf("nSystemState\tBYPASS\n"); break;
+                                case SYSTEM_STATE_OFF_PEAK: printf("nSystemState\tOFF-PEAK\n"); break;
+                                case SYSTEM_STATE_BOOST: printf("nSystemState\tBOOST\n"); break;
+                                default: printf("nSystemState\tGOD KNOWS! (%d)\n", status.nSystemState); break;
+                            }
+                            
+                            if(status.nInverterState[i] >= 0 && status.nInverterState[i] < INVERTER_STATE_COUNT)
+                                printf("nInverterState\t%s\n", GwInverterStatusStrings[status.nInverterState[i]]);
+                            else
+                                printf("nInverterState\t UNKNOWN (%d)\n", status.nInverterState[i]);
+                            
+                            printf("\n");
+                            printf("slModeWriteTime\t%d\n", slModeWriteTime);
+                            printf("The actual time\t%ld\n", time(NULL));
+                        
+                            printf("\n");
+                            printf("nOutputWatts\t%d\n", status.nOutputWatts[i]);
+                            printf("nOutputApppwr\t%d\n", status.nOutputApppwr[i]);
+                            printf("nAcChargeWattsL\t%d\n", status.nAcChargeWattsL[i]);
+                            printf("nBatteryVolts\t%d\n", status.nBatteryVolts[i]);
+                            printf("nBusVolts\t%d\n", status.nBusVolts[i]);
+                            printf("nGridVolts\t%d\n", status.nGridVolts[i]);
+                            printf("nGridFreq\t%d\n", status.nGridFreq[i]);
+                            printf("nAcOutVolts\t%d\n", status.nAcOutVolts[i]);
+                            printf("nAcOutFreq\t%d\n", status.nAcOutFreq[i]);
+                            printf("nInverterTemp\t%d\n", status.nInverterTemp[i]);
+                            printf("nDCDCTemp\t%d\n", status.nDCDCTemp[i]);
+                            printf("nLoadPercent\t%d\n", status.nLoadPercent[i]);
+                            printf("nBuck1Temp\t%d\n", status.nBuck1Temp[i]);
+                            printf("nBuck2Temp\t%d\n", status.nBuck2Temp[i]);
+                            printf("nOutputAmps\t%d\n", status.nOutputAmps[i]);
+                            printf("nInverterAmps\t%d\n", status.nInverterAmps[i]);
+                            printf("nAcInputWattsL\t%d\n", status.nAcInputWattsL[i]);
+                            printf("nAcchgegyToday\t%d\n", status.nAcchgegyToday[i]);
+                            printf("nBattuseToday\t%d\n", status.nBattuseToday[i]);
+                            printf("nAcUseToday\t%d\n", status.nAcUseToday[i]);
+                            printf("nBattchgAmps\t%d\n", status.nBattchgAmps[i]);
+                            printf("nAcUseWatts\t%d\n", status.nAcUseWatts[i]);
+                            printf("nBattuseWatts\t%d\n", status.nBattUseWatts[i]);
+                            printf("nBattWatts\t%d\n", status.nBattWatts[i]);
+                            printf("nInvFanspeed\t%d\n", status.nInvFanspeed[i]);
+                            printf("--------------------\n");
                         }
-                        
-                        switch(status.nSystemState)
-                        {
-                            case SYSTEM_STATE_PEAK: printf("nSystemState\tPEAK\n"); break;
-                            case SYSTEM_STATE_BYPASS: printf("nSystemState\tBYPASS\n"); break;
-                            case SYSTEM_STATE_OFF_PEAK: printf("nSystemState\tOFF-PEAK\n"); break;
-                            case SYSTEM_STATE_BOOST: printf("nSystemState\tBOOST\n"); break;
-                            default: printf("nSystemState\tGOD KNOWS! (%d)\n", status.nSystemState); break;
-                        }
-                        
-                        if(status.nInverterState >= 0 && status.nInverterState < INVERTER_STATE_COUNT)
-                            printf("nInverterState\t%s\n", GwInverterStatusStrings[status.nInverterState]);
-                        else
-                            printf("nInverterState\t UNKNOWN (%d)\n", status.nInverterState);
-                        
-                        printf("\n");
-                        printf("slModeWriteTime\t%d\n", slModeWriteTime);
-                        printf("The actual time\t%ld\n", time(NULL));
-                        
-                        printf("\n");
-                        printf("nOutputWatts\t%d\n", status.nOutputWatts);
-                        printf("nOutputApppwr\t%d\n", status.nOutputApppwr);
-                        printf("nAcChargeWattsL\t%d\n", status.nAcChargeWattsL);
-                        printf("nBatteryVolts\t%d\n", status.nBatteryVolts);
-                        printf("nBusVolts\t%d\n", status.nBusVolts);
-                        printf("nGridVolts\t%d\n", status.nGridVolts);
-                        printf("nGridFreq\t%d\n", status.nGridFreq);
-                        printf("nAcOutVolts\t%d\n", status.nAcOutVolts);
-                        printf("nAcOutFreq\t%d\n", status.nAcOutFreq);
-                        printf("nInverterTemp\t%d\n", status.nInverterTemp);
-                        printf("nDCDCTemp\t%d\n", status.nDCDCTemp);
-                        printf("nLoadPercent\t%d\n", status.nLoadPercent);
-                        printf("nBuck1Temp\t%d\n", status.nBuck1Temp);
-                        printf("nBuck2Temp\t%d\n", status.nBuck2Temp);
-                        printf("nOutputAmps\t%d\n", status.nOutputAmps);
-                        printf("nInverterAmps\t%d\n", status.nInverterAmps);
-                        printf("nAcInputWattsL\t%d\n", status.nAcInputWattsL);
-                        printf("nAcchgegyToday\t%d\n", status.nAcchgegyToday);
-                        printf("nBattuseToday\t%d\n", status.nBattuseToday);
-                        printf("nAcUseToday\t%d\n", status.nAcUseToday);
-                        printf("nBattchgAmps\t%d\n", status.nBattchgAmps);
-                        printf("nAcUseWatts\t%d\n", status.nAcUseWatts);
-                        printf("nBattuseWatts\t%d\n", status.nBattUseWatts);
-                        printf("nBattWatts\t%d\n", status.nBattWatts);
-                        printf("nInvFanspeed\t%d\n", status.nInvFanspeed);
-                        printf("--------------------\n");
                     }
                     break;
                     
@@ -894,13 +903,6 @@ int main()
                     {
                         bLogging = !bLogging;
                         printf(bLogging? "Logging\n" : "Stopped logging\n");
-                    }
-                    break;
-                    
-                    case 'd':
-                    {
-                        bDebug = !bDebug;
-                        printf(bDebug? "More debug\n" : "Stopped more debug\n");
                     }
                     break;
                     
