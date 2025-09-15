@@ -403,7 +403,7 @@ void* modbus_thread(void* arg)
                 }
                 else
                 {
-                    //Connect to the MODBUS slave (slave ID 1)
+                    //Connect to the MODBUS.
                     sleep(1);
                     if (modbus_connect(ctx) == -1)
                     {
@@ -482,13 +482,12 @@ void* modbus_thread(void* arg)
                     modbus_set_slave(ctx, i + INVERTER_1_ID);
                     
                     int inputRegRead = modbus_read_input_registers(ctx, 0, INPUT_REGISTER_COUNT, inputRegs);
-                    usleep(10000);
+                    usleep(100000);
                     int holdingRegRead1 = modbus_read_registers(ctx, GW_HREG_CFG_MODE, 1, &nInverterMode[i]);
-                    usleep(10000);
+                    usleep(100000);
                     int holdingRegRead2 = modbus_read_registers(ctx, GW_HREG_MAX_UTIL_AMPS, 1, &nChargeAmps[i]);
-                    usleep(10000);
+                    usleep(100000);
                     int holdingRegRead3 = modbus_read_registers(ctx, GW_HREG_UTIL_END_HOUR, 1, &nEndHour[i]);
-                    usleep(10000);
                     
                     if(-1 == inputRegRead ||
                        -1 == holdingRegRead1 ||
