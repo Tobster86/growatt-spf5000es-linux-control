@@ -209,7 +209,6 @@ static void SetOvernightAmps()
         if(modbus_write_register(ctx, GW_HREG_MAX_UTIL_AMPS, status.nChargeCurrent) < 0)
         {
             printft("Failed to write steady util charging amps to config register: %s\n", modbus_strerror(errno));
-            reinit();
         }
         
         usleep(MODBUS_WAIT);
@@ -227,7 +226,6 @@ static void SetBoostAmps()
         if(modbus_write_register(ctx, GW_HREG_MAX_UTIL_AMPS, status.nChargeCurrent) < 0)
         {
             printft("Failed to write max util charging amps to config register: %s\n", modbus_strerror(errno));
-            reinit();
         }
         
         usleep(MODBUS_WAIT);
@@ -247,7 +245,6 @@ static void SetManualAmps(uint16_t nAmps)
             if(modbus_write_register(ctx, GW_HREG_MAX_UTIL_AMPS, status.nChargeCurrent) < 0)
             {
                 printft("Failed to write manual util charging amps to config register: %s\n", modbus_strerror(errno));
-                reinit();
             }
             
             usleep(MODBUS_WAIT);
@@ -264,7 +261,6 @@ static void LimitChargingTimes()
         if(modbus_write_register(ctx, GW_HREG_UTIL_END_HOUR, GW_CFG_UTIL_TIME_OFFPEAK) < 0)
         {
             printft("Failed to write off-peak only charging config register: %s\n", modbus_strerror(errno));
-            reinit();
         }
         
         usleep(MODBUS_WAIT);
@@ -280,7 +276,6 @@ static void UnlimitChargingTimes()
         if(modbus_write_register(ctx, GW_HREG_UTIL_END_HOUR, GW_CFG_UTIL_TIME_ANY_TIME) < 0)
         {
             printft("Failed to write any time charging config register: %s\n", modbus_strerror(errno));
-            reinit();
         }
         
         usleep(MODBUS_WAIT);
@@ -299,7 +294,6 @@ static void SwitchToBypass()
         if(modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_GRID) < 0)
         {
             printft("Failed to write grid mode (bypass) to config register: %s\n", modbus_strerror(errno));
-            reinit();
         }
         
         usleep(MODBUS_WAIT);
@@ -321,7 +315,6 @@ static void SwitchToPeak()
         if(modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_BATTS) < 0)
         {
             printft("Failed to write batt mode (peak) to config register: %s\n", modbus_strerror(errno));
-            reinit();
         }
         
         usleep(MODBUS_WAIT);
@@ -343,7 +336,6 @@ static void SwitchToOffPeak()
         if(modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_GRID) < 0)
         {
             printft("Failed to write grid mode (off peak) to config register: %s\n", modbus_strerror(errno));
-            reinit();
         }
         
         usleep(MODBUS_WAIT);
@@ -368,7 +360,6 @@ static void SwitchToBoost()
         if(modbus_write_register(ctx, GW_HREG_CFG_MODE, GW_CFG_MODE_GRID) < 0)
         {
             printft("Failed to write grid mode (boost) to config register: %s\n", modbus_strerror(errno));
-            reinit();
         }
         
         usleep(MODBUS_WAIT);
@@ -406,7 +397,6 @@ void* modbus_thread(void* arg)
                 else
                 {
                     //Connect to the MODBUS.
-                    modbus_set_debug(ctx, bMODBUSDebug);
                     sleep(1);
                     if (modbus_connect(ctx) == -1)
                     {
@@ -425,6 +415,8 @@ void* modbus_thread(void* arg)
 
             case PROCESS:
             {
+                modbus_set_debug(ctx, bMODBUSDebug);
+                
                 //Get the time.
                 time_t rawtime;
                 struct tm* timeinfo;
@@ -455,7 +447,6 @@ void* modbus_thread(void* arg)
                        -1 == holdingRegRead3 )
                     {
                         printft("Failed to read MODBUS registers for inverter %d.\n", i + INVERTER_1_ID);
-                        reinit();
                         break;
                     }
                     else
