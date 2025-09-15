@@ -193,7 +193,7 @@ static void reinit()
     }
 
     modbusState = INIT;
-    sleep(MODBUS_WAIT);
+    sleep(1);
 }
 
 static void SetOvernightAmps()
