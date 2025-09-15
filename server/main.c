@@ -21,6 +21,7 @@
 
 bool bRunning = true;
 bool bLogging = true;
+bool bMODBUSDebug = false;
 
 #define MODBUS_WAIT 150000
 
@@ -405,6 +406,7 @@ void* modbus_thread(void* arg)
                 else
                 {
                     //Connect to the MODBUS.
+                    modbus_set_debug(ctx, bMODBUSDebug);
                     sleep(1);
                     if (modbus_connect(ctx) == -1)
                     {
@@ -858,6 +860,14 @@ int main()
                     }
                     break;
                     
+                    case 'm':
+                    {
+                        bMODBUSDebug = !bMODBUSDebug;
+                        printf(bMODBUSDebug? "MODBUS debugging on next connection\n" :
+                                             "MODBUS no debugging on next connection\n");
+                    }
+                    break;
+                    
                     case 'a':
                     {
                         uint16_t nAmps = 0;
@@ -896,6 +906,7 @@ int main()
                         printf("b - Manual battery mode\n");
                         printf("f - Manual boost mode\n");
                         printf("l - Toggle logging\n");
+                        printf("m - Toggle MODBUS debug\n");
                         printf("a[1-80] - Override current util charge amps\n");
                         printf("--------------------------------\n");
                         break;
