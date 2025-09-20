@@ -595,6 +595,24 @@
            </widget>
           </item>
           <item>
+           <widget class="QToolButton" name="btnSolar">
+            <property name="minimumSize">
+             <size>
+              <width>64</width>
+              <height>64</height>
+             </size>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>20</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>☀️</string>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QToolButton" name="btnHealth">
             <property name="minimumSize">
              <size>

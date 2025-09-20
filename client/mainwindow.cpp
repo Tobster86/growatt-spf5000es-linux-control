@@ -23,6 +23,7 @@ MainWindow::MainWindow(QWidget *parent, SystemStatus* statusPtr)
     connect(ui->btnSwitchToGrid, &QPushButton::clicked, this, &MainWindow::SwitchToGrid_clicked);
     connect(ui->btnGeneral, &QPushButton::clicked, this, &MainWindow::General_clicked);
     connect(ui->btnCharging, &QPushButton::clicked, this, &MainWindow::Charging_clicked);
+    connect(ui->btnSolar, &QPushButton::clicked, this, &MainWindow::Solar_clicked);
     connect(ui->btnHealth, &QPushButton::clicked, this, &MainWindow::Health_clicked);
     connect(ui->btnAC, &QPushButton::clicked, this, &MainWindow::AC_clicked);
     connect(ui->btnBatteries, &QPushButton::clicked, this, &MainWindow::Batteries_clicked);
@@ -181,6 +182,18 @@ void MainWindow::updateStatus()
         }
         break;
 
+        case UIState::Solar:
+        {
+            ui->lbl01->setVisible(true);
+            ui->lbl02->setVisible(true);
+            ui->lbl03->setVisible(true);
+
+            ui->lbl01->setText(QString("Solar Volts: %1 V").arg(status->nSolarVolts / 100.0));
+            ui->lbl02->setText(QString("Solar Watts: %1 W").arg(status->nSolarWatts / 10.0));
+            ui->lbl03->setText(QString("Solar Today: %1 kWh").arg(status->nSolarToday / 10.0));
+        }
+        break;
+
         case UIState::Health:
         {
             ui->lbl01->setVisible(true);
@@ -262,6 +275,12 @@ void MainWindow::General_clicked()
 void MainWindow::Charging_clicked()
 {
     uiState = UIState::Charging;
+    PrepareStateChange();
+}
+
+void MainWindow::Solar_clicked()
+{
+    uiState = UIState::Solar;
     PrepareStateChange();
 }
 

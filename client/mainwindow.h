@@ -26,6 +26,7 @@ private:
     {
         Information,
         Charging,
+        Solar,
         Health,
         AC,
         Batteries
@@ -42,6 +43,7 @@ private slots:
     void SwitchToGrid_clicked();
     void General_clicked();
     void Charging_clicked();
+    void Solar_clicked();
     void Health_clicked();
     void AC_clicked();
     void Batteries_clicked();
