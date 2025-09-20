@@ -22,6 +22,7 @@
 bool bRunning = true;
 bool bLogging = true;
 bool bMODBUSDebug = false;
+bool bDumpInputRegs = false;
 
 #define MODBUS_WAIT 150000
 
@@ -451,6 +452,25 @@ void* modbus_thread(void* arg)
                     }
                     else
                     {
+                        if(bDumpInputRegs)
+                        {
+                            bDumpInputRegs = false;
+                            
+                            for (int j = 0; j < INPUT_REGISTER_COUNT; j += 5)
+                            {
+                                printf("[%d]", j);
+                            
+                                int remaining = INPUT_REGISTER_COUNT - j;
+                                int cols = remaining < 5 ? remaining : 5;
+
+                                for (int k = 0; k < cols; k++)
+                                {
+                                    printf("%d\t", inputRegs[j + k]);
+                                }
+                                printf("\n");
+                            }
+                        }
+                    
                         //Store relevant input register values.
                         status.nInverterState[i] = inputRegs[STATUS];
                         status.nOutputWatts[i] = inputRegs[OUTPUT_WATTS_L];
@@ -883,6 +903,13 @@ int main()
                     }
                     break;
                     
+                    case 'd':
+                    {
+                        printf("Dumping input regs...\n");
+                        bDumpInputRegs = true;
+                    }
+                    break;
+                    
                     case '\n':
                     case '\r':
                         //Ignore whitespace.
@@ -898,6 +925,7 @@ int main()
                         printf("f - Manual boost mode\n");
                         printf("l - Toggle logging\n");
                         printf("m - Toggle MODBUS debug\n");
+                        printf("d - Dump next input registers\n");
                         printf("a[1-80] - Override current util charge amps\n");
                         printf("--------------------------------\n");
                         break;
