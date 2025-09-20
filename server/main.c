@@ -441,7 +441,7 @@ void* modbus_thread(void* arg)
                     status.nOutputAmps = inputRegs[OUTPUT_AMPS];
                     status.nInverterAmps = inputRegs[INVERTER_AMPS];
                     status.nAcInputWattsL = inputRegs[AC_INPUT_WATTS_L];
-                    status.nSolarToday = inputRegs[EGY1GEN_TOTAL_L];
+                    status.nSolarToday = inputRegs[EGY1GEN_TODAY_L];
                     status.nAcchgegyToday = inputRegs[ACCHGEGY_TODAY_L];
                     status.nBattuseToday = inputRegs[BATTUSE_TODAY_L];
                     status.nAcUseToday = inputRegs[AC_USE_TODAY_L];
