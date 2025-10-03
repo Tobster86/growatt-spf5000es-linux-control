@@ -6,7 +6,7 @@ uint16_t utils_GetOffpeakChargingAmps(struct SystemStatus* pSystemStatus)
     //Intelligent charging calculation.
     uint16_t nResult = GW_CFG_UTIL_AMPS_MOD;
 
-    if(pSystemStatus->nOffPeakChargeKwh > 0) //Don't do this unless we've measured an off-peak charge energy.
+    /*if(pSystemStatus->nOffPeakChargeKwh > 0) //Don't do this unless we've measured an off-peak charge energy.
     {
         float fltBoostChargeEnergy = (float)(pSystemStatus->nAcchgegyToday - pSystemStatus->nOffPeakChargeKwh) *
                                      GW_WORST_CASE_CHARGE_EFFICIENCY;
@@ -35,7 +35,7 @@ uint16_t utils_GetOffpeakChargingAmps(struct SystemStatus* pSystemStatus)
     if(nResult > (GW_CFG_UTIL_AMPS_MAX / INVERTER_COUNT))
         nResult = (GW_CFG_UTIL_AMPS_MAX / INVERTER_COUNT);
     else if(nResult < (CHARGE_MIN_AMPS / INVERTER_COUNT))
-        nResult = (CHARGE_MIN_AMPS / INVERTER_COUNT);
+        nResult = (CHARGE_MIN_AMPS / INVERTER_COUNT);*/
     
     return nResult;
 }
