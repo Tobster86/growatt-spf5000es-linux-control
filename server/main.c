@@ -384,10 +384,15 @@ void* modbus_thread(void* arg)
                 //Read input registers and holding register (inverter mode).
                 uint16_t inputRegs[INPUT_REGISTER_COUNT * NUM_INVERTERS];
 
+                int inputRegRead = 0;
+
                 for(int i = 0; i < NUM_INVERTERS; i++)
                 {
-                    int inputRegRead = modbus_read_input_registers(ctx, i * INPUT_REGISTER_COUNT, INPUT_REGISTER_COUNT, &inputRegs[i * INPUT_REGISTER_COUNT]);
+                    inputRegRead = modbus_read_input_registers(ctx, i * INPUT_REGISTER_COUNT, INPUT_REGISTER_COUNT, &inputRegs[i * INPUT_REGISTER_COUNT]);
                     usleep(MODBUS_WAIT);
+                    
+                    if(-1 == inputRegRead) //Break on error.
+                        break;
                 }
                 
                 int holdingRegRead1 = modbus_read_registers(ctx, GW_HREG_CFG_MODE, 1, &nInverterMode);
