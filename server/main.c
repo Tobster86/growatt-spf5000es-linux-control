@@ -26,6 +26,8 @@ bool bDumpInputRegs = false;
 
 #define MODBUS_WAIT 150000
 
+#define NUM_INVERTERS 2
+
 enum ModbusState
 {
     INIT,
@@ -380,9 +382,9 @@ void* modbus_thread(void* arg)
                 int lMin = timeinfo->tm_min;
             
                 //Read input registers and holding register (inverter mode).
-                uint16_t inputRegs[INPUT_REGISTER_COUNT];
+                uint16_t inputRegs[INPUT_REGISTER_COUNT * NUM_INVERTERS];
 
-                int inputRegRead = modbus_read_input_registers(ctx, 0, INPUT_REGISTER_COUNT, inputRegs);
+                int inputRegRead = modbus_read_input_registers(ctx, 0, INPUT_REGISTER_COUNT * NUM_INVERTERS, inputRegs);
                 usleep(MODBUS_WAIT);
                 int holdingRegRead1 = modbus_read_registers(ctx, GW_HREG_CFG_MODE, 1, &nInverterMode);
                 usleep(MODBUS_WAIT);
@@ -405,11 +407,11 @@ void* modbus_thread(void* arg)
                     {
                         bDumpInputRegs = false;
                         
-                        for (int j = 0; j < INPUT_REGISTER_COUNT; j += 5)
+                        for (int j = 0; j < INPUT_REGISTER_COUNT * NUM_INVERTERS; j += 5)
                         {
                             printf("[%d]", j);
                         
-                            int remaining = INPUT_REGISTER_COUNT - j;
+                            int remaining = (INPUT_REGISTER_COUNT * NUM_INVERTERS) - j;
                             int cols = remaining < 5 ? remaining : 5;
 
                             for (int k = 0; k < cols; k++)
