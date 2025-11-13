@@ -26,7 +26,7 @@ bool bDumpInputRegs = false;
 
 #define MODBUS_WAIT 150000
 
-#define NUM_INVERTERS 5
+#define NUM_INVERTERS 8
 
 enum ModbusState
 {
@@ -418,7 +418,7 @@ void* modbus_thread(void* arg)
                         
                         for (int j = 0; j < INPUT_REGISTER_COUNT * NUM_INVERTERS; j += 10)
                         {
-                            printf("[%d]", j);
+                            printf("[%03d]", j);
                         
                             int remaining = (INPUT_REGISTER_COUNT * NUM_INVERTERS) - j;
                             int cols = remaining < 10 ? remaining : 10;
