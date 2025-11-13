@@ -416,16 +416,16 @@ void* modbus_thread(void* arg)
                     {
                         bDumpInputRegs = false;
                         
-                        for (int j = 0; j < INPUT_REGISTER_COUNT * NUM_INVERTERS; j += 5)
+                        for (int j = 0; j < INPUT_REGISTER_COUNT * NUM_INVERTERS; j += 10)
                         {
                             printf("[%d]", j);
                         
                             int remaining = (INPUT_REGISTER_COUNT * NUM_INVERTERS) - j;
-                            int cols = remaining < 5 ? remaining : 5;
+                            int cols = remaining < 10 ? remaining : 10;
 
                             for (int k = 0; k < cols; k++)
                             {
-                                printf("%d\t", inputRegs[j + k]);
+                                printf("%6d", inputRegs[j + k]);
                             }
                             printf("\n");
                         }
