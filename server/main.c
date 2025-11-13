@@ -26,7 +26,7 @@ bool bDumpInputRegs = false;
 
 #define MODBUS_WAIT 150000
 
-#define NUM_INVERTERS 2
+#define NUM_INVERTERS 5
 
 enum ModbusState
 {
