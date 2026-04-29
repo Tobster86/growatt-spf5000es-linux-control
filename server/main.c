@@ -26,8 +26,6 @@ bool bDumpInputRegs = false;
 
 #define MODBUS_WAIT 150000
 
-#define NUM_INVERTERS 8
-
 enum ModbusState
 {
     INIT,
@@ -382,18 +380,15 @@ void* modbus_thread(void* arg)
                 int lMin = timeinfo->tm_min;
             
                 //Read input registers and holding register (inverter mode).
-                uint16_t inputRegs[INPUT_REGISTER_COUNT * NUM_INVERTERS];
+                uint16_t inputRegs[INPUT_REGISTER_COUNT];
 
                 int inputRegRead = 0;
 
-                for(int i = 0; i < NUM_INVERTERS; i++)
-                {
-                    inputRegRead = modbus_read_input_registers(ctx, i * INPUT_REGISTER_COUNT, INPUT_REGISTER_COUNT, &inputRegs[i * INPUT_REGISTER_COUNT]);
-                    usleep(MODBUS_WAIT);
-                    
-                    if(-1 == inputRegRead) //Break on error.
-                        break;
-                }
+                inputRegRead = modbus_read_input_registers(ctx, INPUT_REGISTER_COUNT, INPUT_REGISTER_COUNT, &inputRegs[INPUT_REGISTER_COUNT]);
+                usleep(MODBUS_WAIT);
+                
+                if(-1 == inputRegRead) //Break on error.
+                    break;
                 
                 int holdingRegRead1 = modbus_read_registers(ctx, GW_HREG_CFG_MODE, 1, &nInverterMode);
                 usleep(MODBUS_WAIT);
@@ -415,12 +410,12 @@ void* modbus_thread(void* arg)
                     if(bDumpInputRegs)
                     {
                         bDumpInputRegs = false;
-                        
-                        for (int j = 0; j < INPUT_REGISTER_COUNT * NUM_INVERTERS; j += 10)
+                    
+                        for (int j = 0; j < INPUT_REGISTER_COUNT; j += 5)
                         {
                             printf("[%03d]", j);
-                        
-                            int remaining = (INPUT_REGISTER_COUNT * NUM_INVERTERS) - j;
+                            
+                            int remaining = INPUT_REGISTER_COUNT - j;
                             int cols = remaining < 10 ? remaining : 10;
 
                             for (int k = 0; k < cols; k++)
