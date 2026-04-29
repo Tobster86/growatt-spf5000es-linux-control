@@ -24,7 +24,7 @@
 #define GW_CFG_UTIL_TIME_OFFPEAK  4 //Charging not allowed after 5am if end.
 
 #define GW_CFG_UTIL_AMPS_MAX 80 //Free sessions etc. Smash those amps in!
-#define GW_CFG_UTIL_AMPS_MOD 40 //Off-peak. Steady to help with balancing.
+#define GW_CFG_UTIL_AMPS_MOD 60 //Off-peak. Steady to help with balancing.
 
 #define GW_WORST_CASE_CHARGE_EFFICIENCY 0.8f   /* As measured, charge efficiency is never any worse than this. */
 #define GW_WH_MULTIPLIER 100.0f;               /* kWh unit representation to raw Wh. Growatt actually use deciwatt hours. */

@@ -382,9 +382,8 @@ void* modbus_thread(void* arg)
                 //Read input registers and holding register (inverter mode).
                 uint16_t inputRegs[INPUT_REGISTER_COUNT];
 
-                int inputRegRead = 0;
+                int inputRegRead = modbus_read_input_registers(ctx, 0, INPUT_REGISTER_COUNT, inputRegs);
 
-                inputRegRead = modbus_read_input_registers(ctx, INPUT_REGISTER_COUNT, INPUT_REGISTER_COUNT, &inputRegs[INPUT_REGISTER_COUNT]);
                 usleep(MODBUS_WAIT);
                 
                 if(-1 == inputRegRead) //Break on error.
