@@ -415,7 +415,7 @@ void* modbus_thread(void* arg)
                             printf("[%03d]", j);
                             
                             int remaining = INPUT_REGISTER_COUNT - j;
-                            int cols = remaining < 10 ? remaining : 10;
+                            int cols = remaining < 5 ? remaining : 5;
 
                             for (int k = 0; k < cols; k++)
                             {
